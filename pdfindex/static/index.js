@@ -492,6 +492,14 @@ $('#q').addEventListener('keydown', e => {
   if (first) { e.preventDefault(); first.focus(); openHit(first); }
 });
 
+document.addEventListener('keydown', e => {
+  if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+  e.preventDefault();
+  $('#q').focus();
+});
+
 // ---- resizable splitter (remembered) ----
 const SPLIT_KEY = 'pdfindex.split';
 function setSplit(frac) {

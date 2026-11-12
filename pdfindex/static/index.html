@@ -8,19 +8,21 @@
 <link rel="stylesheet" href="/static/app.css">
 </head><body class="split">
 <header><h1><img class="logo" src="/static/logo.svg" alt="" width="32" height="32">PDF Indexer</h1>
-<button id="rescan" type="button" aria-expanded="false" aria-controls="scanpanel">Index / Rescan</button>
-<input id="q" type="search" aria-label="Search PDFs" placeholder='Search words or "exact phrase"' autofocus>
+<input id="q" type="search" aria-label="Search PDFs" placeholder='Search PDFs – words or "exact phrase"' autofocus>
+<div class="hright">
 <div role="tablist" aria-label="Views">
 <button role="tab" id="tab-search" aria-controls="search" aria-selected="true" data-t="search" type="button">Search</button>
 <button role="tab" id="tab-notes" aria-controls="notes" aria-selected="false" tabindex="-1" data-t="notes" type="button">Notes</button>
 <button role="tab" id="tab-issues" aria-controls="issues" aria-selected="false" tabindex="-1" data-t="issues" type="button">Issues</button>
-</div><button id="helpbtn" type="button" aria-haspopup="dialog">Help</button></header>
+</div>
+<button id="rescan" type="button" aria-expanded="false" aria-controls="scanpanel">Index / Rescan</button>
+<button id="helpbtn" type="button" aria-haspopup="dialog">Help</button></div></header>
 <dialog id="helpdlg" aria-labelledby="helptitle">
 <div class="dlghead"><h2 id="helptitle">About / Release info</h2><button id="helpclose" type="button" aria-label="Close help">✕</button></div>
 <p id="verinfo">Loading…</p>
 <p><a href="/api/readme" target="_blank" rel="noopener">Usage help (README)</a></p>
 <h3>Keyboard shortcuts</h3>
-<ul class="keys"><li><kbd>↓</kbd> in the search box: jump to the first result</li><li><kbd>↑</kbd>/<kbd>↓</kbd> on results: previous/next result, opens it below</li><li><kbd>←</kbd>/<kbd>→</kbd> or <kbd>↑</kbd>/<kbd>↓</kbd> on the splitter: resize panes</li><li><kbd>Esc</kbd>: close this window</li></ul>
+<ul class="keys"><li><kbd>/</kbd>: jump to the search box</li><li><kbd>↓</kbd> in the search box: jump to the first result</li><li><kbd>↑</kbd>/<kbd>↓</kbd> on results: previous/next result, opens it below</li><li><kbd>←</kbd>/<kbd>→</kbd> or <kbd>↑</kbd>/<kbd>↓</kbd> on the splitter: resize panes</li><li><kbd>Esc</kbd>: close this window</li></ul>
 <h3>Changelog</h3>
 <pre id="changelog" tabindex="0">Loading…</pre>
 </dialog>
@@ -53,7 +55,7 @@
 <label><input type="checkbox" class="src" value="note" checked> Note</label>
 <span>Types:</span>
 <label><input type="checkbox" class="ftype" value="pdf" checked> PDF</label> <label><input type="checkbox" class="ftype" value="docx" checked> Word</label> <label><input type="checkbox" class="ftype" value="xlsx" checked> Excel</label> <label><input type="checkbox" class="ftype" value="pptx" checked> PowerPoint</label> <label><input type="checkbox" class="ftype" value="txt" checked> Text</label> <label><input type="checkbox" class="ftype" value="md" checked> Markdown</label>
-<label>Folder: <input id="folder" type="text" aria-label="Folder path prefix" placeholder="path prefix"></label>
+<label class="folderlimit">Limit to folder path (optional): <input id="folder" type="text" aria-label="Limit search to folder path" placeholder="e.g. reports/2024"></label>
 <button id="filesbtn" type="button" aria-expanded="false" aria-controls="files">▸ File filter: all files</button>
 <span id="chip" class="chip" hidden><span id="chiptext"></span> <button id="chipclear" type="button" aria-label="Clear file filter">✕</button></span></div>
 <div id="files" class="panel" hidden role="group" aria-label="File filter">

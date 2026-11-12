@@ -2,6 +2,13 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.3] - 2026-11-12
+
+### Changed
+- **Search box is now central and prominent** in the header (larger, with a clear focus ring); the Search/Notes/Issues tabs, Index / Rescan and Help are grouped on the right. On narrow windows the search box moves to its own full-width row.
+- The folder filter is now labelled "Limit to folder path (optional)" with a smaller field, so it is not mistaken for the main search.
+- Press `/` anywhere (outside a text field) to jump to the search box.
+
 ## [1.8.2] - 2026-11-12
 
 ### Fixed
