@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>PDF Viewer</title>
+<link rel="icon" type="image/svg+xml" href="/static/logo.svg">
 <link rel="stylesheet" href="/static/app.css">
 </head><body class="viewer">
 <div id="main">
-<div id="bar"><a id="back" class="btn" href="/">← Back to search</a><span id="searched" class="muted"></span><button id="prev" type="button" aria-label="Previous page">◀</button>
+<div id="bar"><a href="/" class="logolink" aria-label="PDF Indexer home"><img class="logo" src="/static/logo.svg" alt="" width="28" height="28"></a><a id="back" class="btn" href="/">← Back to search</a><span id="searched" class="muted"></span><button id="prev" type="button" aria-label="Previous page">◀</button>
 <span><label for="pg" id="pglabel">Page</label> <input id="pg" type="number" min="1"> / <span id="tot"></span></span>
 <button id="next" type="button" aria-label="Next page">▶</button><strong id="title" class="gap"></strong><span id="typebadge" class="ftbadge"></span><a id="orig" class="btn" href="#" download hidden>Open original file</a><span id="notemark" role="img"></span></div>
 <div id="banner" role="status"></div>

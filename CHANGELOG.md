@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.7.1] - 2026-11-12
+
+### Added
+- **Program logo** (a document with a magnifier, `static/logo.svg`) in the page header, the viewer bar (links home) and as the browser tab icon. Bundled SVG, no external requests.
+
 ## [1.7.0] - 2026-11-12
 
 ### Added
