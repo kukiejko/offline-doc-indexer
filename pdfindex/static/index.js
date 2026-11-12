@@ -136,6 +136,7 @@ window.addEventListener('pagehide', saveState);
   $('#folder').value = s.folder || '';
   document.querySelectorAll('.src').forEach(c => { c.checked = (s.src || []).includes(c.value); });
   if (Array.isArray(s.types)) document.querySelectorAll('.ftype').forEach(c => { c.checked = s.types.includes(c.value); });
+  if (typeof renderHint === 'function') renderHint();
   await doSearch();
   top_.scrollTop = s.scroll || 0;
   if (s.sel) {
@@ -146,7 +147,22 @@ window.addEventListener('pagehide', saveState);
 })();
 
 // ---- file filter ----
+function renderHint() {
+  const parts = [];
+  const n = fsel.size;
+  if (n) parts.push(fmode === 'only' ? `${n} file${n === 1 ? '' : 's'} selected` : `${n} file${n === 1 ? '' : 's'} excluded`);
+  const types = [...document.querySelectorAll('.ftype')];
+  if (types.some(c => !c.checked)) parts.push('types: ' + (types.filter(c => c.checked).map(c => c.value).join(', ') || 'none'));
+  const srcs = [...document.querySelectorAll('.src')];
+  if (srcs.some(c => !c.checked)) parts.push('show: ' + (srcs.filter(c => c.checked).map(c => c.value).join(', ') || 'none'));
+  const fo = $('#folder').value.trim();
+  if (fo) parts.push('folder: ' + fo);
+  $('#filterhint').hidden = !parts.length;
+  $('#filterhinttext').textContent = 'Filters on: ' + parts.join(' · ');
+  $('#tab-filters').textContent = parts.length ? 'Filters •' : 'Filters';
+}
 function renderChip() {
+  renderHint();
   const n = fsel.size;
   $('#chip').hidden = !n;
   $('#chiptext').textContent = fmode === 'only' ? `${n} file${n === 1 ? '' : 's'} selected` : `${n} file${n === 1 ? '' : 's'} excluded`;
@@ -210,6 +226,10 @@ $('#fnone').onclick = () => { visibleIds().forEach(id => fsel.delete(id)); filte
 $('#finv').onclick = () => { visibleIds().forEach(id => fsel.has(id) ? fsel.delete(id) : fsel.add(id)); filterChanged(); };
 document.querySelectorAll('input[name=fmode]').forEach(r => r.addEventListener('change', () => { fmode = r.value; filterChanged(); }));
 $('#chipclear').onclick = () => { fsel.clear(); filterChanged(); $('#filesbtn').focus(); };
+$('#filters').addEventListener('change', renderHint);
+$('#folder').addEventListener('input', renderHint);
+$('#filteredit').onclick = () => selectTab($('#tab-filters'));
+renderHint();
 $('#results').addEventListener('click', e => {
   const b = e.target.closest('button.exclude');
   if (!b) return;
@@ -498,6 +518,7 @@ document.addEventListener('keydown', e => {
   const t = e.target;
   if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
   e.preventDefault();
+  if ($('#search').hidden) selectTab($('#tab-search'));
   $('#q').focus();
 });
 

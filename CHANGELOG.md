@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.7] - 2026-11-12
+
+### Changed
+- The whole filter bar (Show / Types checkboxes, folder limit, File filter button, chip and file list) moved into its own **Filters** tab (Search · Filters · Notes · Issues). The Search tab is now just the search box and results. Filters stay applied to searches from any tab; when any filter is active, a "Filters on: …" hint with an **Edit filters** button appears under the search box and the tab reads "Filters •". `/` now also switches back to the Search tab.
+
 ## [1.8.6] - 2026-11-12
 
 ### Changed
