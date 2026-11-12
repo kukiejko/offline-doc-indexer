@@ -239,13 +239,6 @@ $('#results').addEventListener('click', e => {
   filterChanged();
 });
 
-const panel = $('#scanpanel');
-function showPanel(on) {
-  panel.hidden = !on;
-  $('#rescan').setAttribute('aria-expanded', String(on));
-}
-$('#rescan').onclick = () => showPanel(panel.hidden);
-
 $('#scanstart').onclick = async () => {
   const mode = document.querySelector('input[name=smode]:checked').value;
   if (mode === 'full' && !confirm('Re-index every PDF, including OCR? This can take a long time.')) return;
@@ -280,12 +273,11 @@ function renderScan(s) {
   $('#scancancel').hidden = !s.running;
   $('#scancancel').disabled = !!s.cancelling;
   prog.hidden = det.hidden = !s.running;
-  const btn = $('#rescan');
+  const btn = $('#tab-index');
   btn.textContent = s.running
-    ? `Indexing ${s.pages_total ? Math.round(100 * s.pages_done / s.pages_total) : 0}%…`
-    : 'Index / Rescan';
+    ? `Index ${s.pages_total ? Math.round(100 * s.pages_done / s.pages_total) : 0}%…`
+    : 'Index';
   if (s.running) {
-    if (!renderScan.wasRunning) showPanel(true); // open once when a scan starts; the user can collapse it afterwards
     renderScan.wasRunning = true;
     prog.max = s.pages_total || 1;
     prog.value = s.pages_done;
@@ -307,7 +299,6 @@ function renderScan(s) {
     msg.innerHTML = `<span class="err">Indexing failed: ${esc(s.error)}</span>`;
   } else if (s.last && s.last.duration != null) {
     const l = s.last;
-    if (!renderScan.seen) showPanel(true);
     msg.textContent = `${l.cancelled ? 'Cancelled' : 'Finished'} in ${fmtDur(l.duration)}: ` +
       `${l.indexed} indexed, ${l.skipped} skipped, ${l.error} failed, ${l.modified || 0} modified, ${l.moved || 0} moved, ${l.removed || 0} missing; ${l.pages} pages, ` +
       `${l.ocr_items} OCR images, ${l.issues} issues.`;

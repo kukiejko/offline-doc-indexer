@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.9] - 2026-11-12
+
+### Changed
+- The header **Index / Rescan** button became an **Index** tab (Search · Filters · Index · Notes · Issues) holding the indexing panel (folders, Add/Browse, switches, Start, progress). While a scan runs the tab label shows "Index N%…" from any tab; the panel no longer opens by itself, so a scan never pulls you away from Search. The header keeps the logo/title and Help.
+
 ## [1.8.8] - 2026-11-12
 
 ### Added

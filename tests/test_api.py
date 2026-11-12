@@ -123,6 +123,7 @@ def test_notes_api_and_viewer(client):
     assert 'id="filterhint"' in home and 'renderHint' in js
     assert home.index('</header>') < home.index('id="tab-search"') < home.index('id="search"') and home.index('id="tab-issues"') < home.index('id="search"')
     assert 'id="searchbtn"' in home and home.index('id="q"') < home.index('id="searchbtn"') < home.index('id="results"') and 'searchNow' in js
+    assert 'id="tab-index"' in home and 'id="rescan"' not in home and home.index('id="tab-index"') < home.index('id="scanpanel"') and 'showPanel' not in js and "`Index ${" in js
     assert "e.key !== '/'" in js
     assert "embed" in client.get("/static/viewer.js").text
     assert 'id="foldall"' in home and 'id="unfoldall"' in home
