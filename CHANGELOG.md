@@ -2,6 +2,13 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.5.0] - 2026-11-12
+
+### Changed
+- **One index database per document folder.** Each configured folder now keeps its own `docindex.db` (index, OCR text, notes and issues) inside the folder instead of one shared `pdfindex.db`. Search, notes, issues and rescan work across all folders; removing and re-adding a folder keeps its notes. Document ids in URLs are now folder-qualified (ids of the first folder are unchanged).
+- `db_path` is now only the legacy single database: when a folder has no `docindex.db` yet, its documents, notes and issues are copied from it automatically on first start (the old file is not modified and can be deleted afterwards).
+- Notes can only be relinked to a file in the same folder.
+
 ## [1.4.0] - 2026-11-12
 
 ### Added

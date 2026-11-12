@@ -4,8 +4,7 @@ import uvicorn
 
 from .__version__ import DESIGNER, RELEASE_TIMESTAMP, __version__
 from .config import load_config
-from .db import connect
-from .indexer import scan_folders
+from .store import scan_all
 from .ocr import make_ocr
 
 
@@ -22,10 +21,11 @@ def main():
     if ocr is None:
         print("WARNING: Tesseract not found; text inside images will NOT be indexed. See README.")
     if a.command == "scan":
-        conn = connect(cfg.db_path)
-        print(scan_folders(conn, cfg.folders, ocr, cfg.min_ocr_image_px,
-                           lambda i, n, c: print(f"[{i}/{n}] {c}") if c else None,
-                           verify=a.verify or cfg.verify_checksums))
+        stats, errors = scan_all(cfg, ocr, lambda i, n, c: print(f"[{i}/{n}] {c}") if c else None,
+                                 verify=a.verify or cfg.verify_checksums)
+        print(stats)
+        for e in errors:
+            print("ERROR:", e)
         return
     from .app import create_app
 

@@ -40,9 +40,9 @@ copy config.example.toml config.toml          # then edit "folders"
 | `file_types` | file types to index, default all: `["pdf", "docx", "xlsx", "pptx", "txt", "md"]` |
 | `watcher` | `true` = rescan automatically when indexed files change, are moved or renamed (with `serve`) |
 | `verify_checksums` | `true` = every scan hashes all files, so edits that keep size and date are found (slower) |
-| `db_path` | SQLite file, default `pdfindex.db` |
+| `db_path` | Legacy single database (default `pdfindex.db`); only read once to migrate an older index into the per-folder databases |
 
-Relative `db_path` and `folders` are resolved against the **config file's folder**, not the working directory. Keeping `config.toml` inside your PDF collection therefore stores everything there: the single SQLite file `pdfindex.db` holds the index, OCR text, notes and issues (plus `-wal`/`-shm` side files while the app runs). Nothing else is persisted. PDFs are never modified.
+Relative `folders` and `db_path` are resolved against the **config file's folder**, not the working directory. Every document folder gets its **own** SQLite file `docindex.db` (plus `-wal`/`-shm` side files while the app runs) holding that folder's index, OCR text, notes and issues, so a collection keeps its notes when moved or backed up, and removing a folder from the config never touches another folder's data. Search, notes, issues and rescan span all configured folders. Upgrading from a single `pdfindex.db`: on first start each folder's documents, notes and issues are copied from it into the folder's new database; the old file is left untouched and can be deleted afterwards. Nothing else is persisted. PDFs are never modified.
 
 ## Run
 

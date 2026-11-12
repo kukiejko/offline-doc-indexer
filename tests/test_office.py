@@ -243,8 +243,8 @@ def test_units_and_original_file(client, office_dir):
 def test_original_file_refuses_paths_outside_folders(client, tmp_path):
     outside = tmp_path / "secret.txt"
     outside.write_text("secret")
-    from pdfindex.db import connect
-    conn = connect(client.app.state.scanner.cfg.db_path)
+    from pdfindex.store import open_folder_db
+    conn = open_folder_db(client.app.state.scanner.cfg.folders[0])
     conn.execute("UPDATE documents SET path=? WHERE doc_type='txt'", (str(outside),))
     conn.commit()
     did = conn.execute("SELECT id FROM documents WHERE doc_type='txt'").fetchone()[0]

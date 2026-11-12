@@ -16,8 +16,10 @@ from . import notes as notes_mod
 from .__version__ import DESIGNER, RELEASE_TIMESTAMP, __version__
 from .config import Config, add_folder, remove_folder
 from .extract import ALL_TYPES, TYPE_LABELS, UNIT_NAMES, doc_type, LEGACY_EXTS
-from .db import connect, list_issues
+from .store import scan_all
+from .db import list_issues
 from .search import group_by_document, search
+from .store import gid, open_folder_db, split_gid
 
 STATIC = Path(__file__).parent / "static"
 
@@ -113,18 +115,16 @@ class Scanner:
         conn = None
         t0 = time.time()
         try:
-            conn = connect(self.cfg.db_path)
             while True:
-                stats = indexer.scan_folders(
-                    conn, self.cfg.folders, self.ocr, self.cfg.min_ocr_image_px,
-                    force=full, cancel=self._cancel, report=self._report, verify=verify,
-                    file_types=self.cfg.file_types)
+                stats, errors = scan_all(self.cfg, self.ocr, force=full, cancel=self._cancel, report=self._report,
+                                         verify=verify)
                 stats["duration"] = round(time.time() - t0, 1)
                 stats["mode"] = "full" if full else "verify" if verify else "changed"
                 stats["pages"] = self.state["pages_done"]
                 stats["ocr_items"] = self.state["ocr_items"]
                 stats["issues"] = self.state["issues"]
                 self.state["last"] = stats
+                self.state["error"] = "; ".join(errors) if errors else None
                 with self.lock:
                     if stats.get("cancelled") or not self._dirty or self._closed:
                         self.state.update(running=False, cancelling=False)
@@ -193,7 +193,12 @@ def start_watcher(cfg: Config, scanner: Scanner):
 
 
 def create_app(cfg: Config, ocr=None, watch=True):
-    connect(cfg.db_path).close()
+    for f in cfg.folders:
+        if Path(f).is_dir():
+            try:
+                open_folder_db(f, cfg.db_path).close()
+            except Exception:
+                pass  # reported by the first scan
     scanner = Scanner(cfg, ocr)
     observer = start_watcher(cfg, scanner) if watch and cfg.watcher else None
 
@@ -226,8 +231,32 @@ def create_app(cfg: Config, ocr=None, watch=True):
         response.headers["Referrer-Policy"] = "no-referrer"
         return response
 
-    def db():
-        return connect(cfg.db_path)
+    def open_slot(slot):
+        if not 0 <= slot < len(cfg.folders):
+            raise HTTPException(404, "Document not found")
+        try:
+            return open_folder_db(cfg.folders[slot], cfg.db_path)
+        except Exception:
+            raise HTTPException(503, "The index of this folder is not available")
+
+    def open_doc(doc_id):
+        """Connection of the folder database holding the (global) doc id, plus the local id."""
+        slot, local = split_gid(doc_id)
+        return open_slot(slot), local
+
+    def each_db():
+        """Yield (slot, conn) for every folder whose index can be opened; closes each connection afterwards."""
+        for slot, folder in enumerate(list(cfg.folders)):
+            if not Path(folder).is_dir():
+                continue
+            try:
+                conn = open_folder_db(folder, cfg.db_path)
+            except Exception:
+                continue
+            try:
+                yield slot, conn
+            finally:
+                conn.close()
 
     def doc_or_404(conn, doc_id):
         r = conn.execute("SELECT * FROM documents WHERE id=?", (doc_id,)).fetchone()
@@ -251,7 +280,7 @@ def create_app(cfg: Config, ocr=None, watch=True):
             part = part.strip()
             if not part:
                 continue
-            if not part.isdigit() or len(part) > 9:
+            if not part.isdigit() or len(part) > 15:
                 raise HTTPException(422, "docs must be a comma-separated list of numeric ids")
             ids.append(int(part))
         if len(ids) > MAX_FILTER_IDS:
@@ -260,12 +289,11 @@ def create_app(cfg: Config, ocr=None, watch=True):
 
     @app.get("/api/docs")
     def list_docs():
-        conn = db()
-        try:
-            rows = conn.execute("SELECT id, path, doc_type FROM documents WHERE status != 'missing' ORDER BY path").fetchall()
-            return [{"id": r["id"], "path": r["path"], "type": r["doc_type"]} for r in rows]
-        finally:
-            conn.close()
+        out = []
+        for slot, conn in each_db():
+            for r in conn.execute("SELECT id, path, doc_type FROM documents WHERE status != 'missing'"):
+                out.append({"id": gid(slot, r["id"]), "path": r["path"], "type": r["doc_type"]})
+        return sorted(out, key=lambda d: d["path"])
 
     @app.get("/api/search")
     def api_search(q: str = "", source: str = "", folder: str = "", docs: str = "", mode: str = "only", types: str = ""):
@@ -274,18 +302,25 @@ def create_app(cfg: Config, ocr=None, watch=True):
             raise HTTPException(422, "unknown file type")
         if mode not in ("only", "exclude"):
             raise HTTPException(422, "mode must be 'only' or 'exclude'")
-        ids = parse_ids(docs)
-        conn = db()
-        try:
-            res = search(conn, q, [s for s in source.split(",") if s] or None, folder or None,
-                         doc_ids=ids if mode == "only" else None,
-                         exclude_ids=ids if mode == "exclude" else None,
-                         types=tlist or None)
-            for r in res:
+        per_slot = {}
+        for g in parse_ids(docs):
+            s, local = split_gid(g)
+            per_slot.setdefault(s, []).append(local)
+        res = []
+        for slot, conn in each_db():
+            ids = per_slot.get(slot)
+            if mode == "only" and per_slot and not ids:
+                continue
+            for r in search(conn, q, [s for s in source.split(",") if s] or None, folder or None,
+                            doc_ids=ids if mode == "only" else None,
+                            exclude_ids=ids if mode == "exclude" else None,
+                            types=tlist or None):
+                r["doc_id"] = gid(slot, r["doc_id"])
                 r.pop("content", None)
-            return {"query": q, "count": len(res), "groups": group_by_document(res)}
-        finally:
-            conn.close()
+                res.append(r)
+        res.sort(key=lambda r: r["score"])
+        res = res[:200]
+        return {"query": q, "count": len(res), "groups": group_by_document(res)}
 
     @app.post("/api/rescan")
     def rescan(mode: str = "changed"):
@@ -328,66 +363,64 @@ def create_app(cfg: Config, ocr=None, watch=True):
 
     @app.get("/api/status")
     def status():
-        conn = db()
-        try:
-            n = conn.execute("SELECT COUNT(*) c FROM documents WHERE status='ok'").fetchone()["c"]
-            return {**scanner.snapshot(), "documents": n, "ocr_available": ocr is not None, "folders": cfg.folders,
-                    "file_types": cfg.file_types, "type_labels": TYPE_LABELS}
-        finally:
-            conn.close()
+        n = 0
+        for _, conn in each_db():
+            n += conn.execute("SELECT COUNT(*) c FROM documents WHERE status='ok'").fetchone()["c"]
+        return {**scanner.snapshot(), "documents": n, "ocr_available": ocr is not None, "folders": cfg.folders,
+                "file_types": cfg.file_types, "type_labels": TYPE_LABELS}
 
     @app.get("/api/issues")
     def issues():
-        conn = db()
-        try:
-            return list_issues(conn)
-        finally:
-            conn.close()
+        out = []
+        for _, conn in each_db():
+            out += [dict(r) for r in conn.execute(
+                "SELECT id, path, page, message, created_at FROM issues")]
+        out.sort(key=lambda r: (r["created_at"], r["id"]), reverse=True)
+        return [{"path": r["path"], "page": r["page"], "message": r["message"]} for r in out]
 
     @app.get("/api/docs/{doc_id}")
     def doc_info(doc_id: int):
-        conn = db()
+        conn, local = open_doc(doc_id)
         try:
-            r = doc_or_404(conn, doc_id)
+            r = doc_or_404(conn, local)
             return {
-                "id": r["id"], "name": Path(r["path"]).name, "pages": r["pages"],
+                "id": doc_id, "name": Path(r["path"]).name, "pages": r["pages"],
                 "type": r["doc_type"], "type_label": TYPE_LABELS.get(r["doc_type"], r["doc_type"]),
                 "unit_name": UNIT_NAMES.get(r["doc_type"], "Page"),
-                "note_pages": notes_mod.pages_with_notes(conn, doc_id),
+                "note_pages": notes_mod.pages_with_notes(conn, local),
             }
+        finally:
+            conn.close()
+
+    def doc_row(doc_id):
+        conn, local = open_doc(doc_id)
+        try:
+            return doc_or_404(conn, local)
         finally:
             conn.close()
 
     @app.get("/api/pdf/{doc_id}")
     def pdf(doc_id: int):
-        conn = db()
-        try:
-            r = doc_or_404(conn, doc_id)
-        finally:
-            conn.close()
+        r = doc_row(doc_id)
         if not indexer.path_is_servable(r["path"], cfg.folders):
             raise HTTPException(404, "File not available")
         return FileResponse(r["path"], media_type="application/pdf")
 
     @app.get("/api/units/{doc_id}")
     def units(doc_id: int):
-        conn = db()
+        conn, local = open_doc(doc_id)
         try:
-            doc_or_404(conn, doc_id)
+            doc_or_404(conn, local)
             rows = conn.execute(
                 "SELECT page, source, content FROM pages_fts WHERE doc_id=? AND source IN ('text','image_ocr','page_ocr') "
-                "ORDER BY page, rowid", (doc_id,)).fetchall()
+                "ORDER BY page, rowid", (local,)).fetchall()
             return [dict(r) for r in rows]
         finally:
             conn.close()
 
     @app.get("/api/file/{doc_id}")
     def original_file(doc_id: int):
-        conn = db()
-        try:
-            r = doc_or_404(conn, doc_id)
-        finally:
-            conn.close()
+        r = doc_row(doc_id)
         if not indexer.path_is_servable(r["path"], cfg.folders):
             raise HTTPException(404, "File not available")
         media = mimetypes.guess_type(r["path"])[0] or "application/octet-stream"
@@ -395,11 +428,11 @@ def create_app(cfg: Config, ocr=None, watch=True):
 
     @app.get("/api/ocr/{doc_id}/{page}")
     def page_ocr(doc_id: int, page: int):
-        conn = db()
+        conn, local = open_doc(doc_id)
         try:
             rows = conn.execute(
                 "SELECT source, bbox, content FROM pages_fts WHERE doc_id=? AND page=? AND source IN ('image_ocr','page_ocr')",
-                (doc_id, page),
+                (local, page),
             ).fetchall()
             return [dict(r) for r in rows]
         finally:
@@ -407,55 +440,57 @@ def create_app(cfg: Config, ocr=None, watch=True):
 
     @app.get("/api/orphans")
     def orphans():
-        conn = db()
-        try:
-            return notes_mod.list_orphaned(conn)
-        finally:
-            conn.close()
+        out = []
+        for slot, conn in each_db():
+            for g in notes_mod.list_orphaned(conn):
+                out.append({**g, "doc_id": gid(slot, g["doc_id"])})
+        return out
 
     @app.post("/api/orphans/{doc_id}/relink")
     def relink(doc_id: int, body: RelinkBody):
-        conn = db()
+        conn, local = open_doc(doc_id)
         try:
-            notes_mod.relink_orphan(conn, doc_id, body.target_id)
+            slot, target = split_gid(body.target_id)
+            if slot != split_gid(doc_id)[0]:
+                raise ValueError("notes can only move within one folder")
+            notes_mod.relink_orphan(conn, local, target)
             return {"ok": True}
         except ValueError:
-            raise HTTPException(422, "Cannot relink: pick an existing, indexed file")
+            raise HTTPException(422, "Cannot relink: pick an existing, indexed file in the same folder")
         finally:
             conn.close()
 
     @app.get("/api/notes")
     def all_notes():
-        conn = db()
-        try:
-            return notes_mod.list_notes(conn)
-        finally:
-            conn.close()
+        out = []
+        for slot, conn in each_db():
+            out += [{**n, "doc_id": gid(slot, n["doc_id"])} for n in notes_mod.list_notes(conn)]
+        return sorted(out, key=lambda n: (n["path"], n["page"]))
 
     @app.get("/api/notes/{doc_id}/{page}")
     def get_note(doc_id: int, page: int):
-        conn = db()
+        conn, local = open_doc(doc_id)
         try:
-            return {"text": notes_mod.get_note(conn, doc_id, page),
-                    "stale_at": notes_mod.get_note_stale(conn, doc_id, page)}
+            return {"text": notes_mod.get_note(conn, local, page),
+                    "stale_at": notes_mod.get_note_stale(conn, local, page)}
         finally:
             conn.close()
 
     @app.post("/api/notes/{doc_id}/{page}/dismiss")
     def dismiss_note_warning(doc_id: int, page: int):
-        conn = db()
+        conn, local = open_doc(doc_id)
         try:
-            notes_mod.dismiss_stale(conn, doc_id, page)
+            notes_mod.dismiss_stale(conn, local, page)
             return {"ok": True}
         finally:
             conn.close()
 
     @app.put("/api/notes/{doc_id}/{page}")
     def put_note(doc_id: int, page: int, body: NoteBody):
-        conn = db()
+        conn, local = open_doc(doc_id)
         try:
-            doc_or_404(conn, doc_id)
-            notes_mod.save_note(conn, doc_id, page, body.text)
+            doc_or_404(conn, local)
+            notes_mod.save_note(conn, local, page, body.text)
             return JSONResponse({"ok": True})
         finally:
             conn.close()
