@@ -8,9 +8,10 @@ h1{font-size:20px;margin:0;display:flex;align-items:center;gap:10px}
 header{background:var(--brand);color:#fff;padding:12px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 main{max-width:960px;margin:16px auto;padding:0 16px}
 input[type=search],input[type=text],input[type=number],textarea{font:inherit;padding:7px 10px;border:1px solid #8a93a3;border-radius:4px}
-#q{flex:1 1 320px;min-width:200px;max-width:720px;margin:0 auto;font-size:18px;padding:10px 14px;border-radius:6px;border:2px solid transparent}
+.searchrow{margin:.5rem 0}
+#q{display:block;width:100%;max-width:720px;box-sizing:border-box;font-size:18px;padding:10px 14px;border-radius:6px;border:2px solid #8a93a3}
 #q:focus-visible{outline:3px solid #ffbf47;outline-offset:1px}
-.hright{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.hright{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-left:auto}
 .folderlimit{font-size:13px;color:var(--muted)}
 .folderlimit input{font-size:13px;padding:3px 6px;width:11em}
 button,a.btn{font:inherit;padding:7px 12px;border:0;border-radius:4px;background:var(--accent);color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
@@ -84,7 +85,6 @@ body.embed #side{width:240px}
   body.embed{flex-direction:column}
   body.embed #side{width:100%;height:110px;flex:none}
   header{padding:8px 10px}
-  #q{order:3;flex-basis:100%;max-width:none}
 }
 
 #scanpanel{border:1px solid #bbb;border-radius:6px;padding:.5rem .75rem;margin:.5rem 0;background:#fafafa}
