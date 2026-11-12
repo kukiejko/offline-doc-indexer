@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.7.0] - 2026-11-12
+
+### Added
+- **Browse button** next to the folder path field: opens a folder window on the computer running the app and fills the path. Pasting a path still works. If no window can be shown, the message asks you to paste the path. API: `POST /api/folders/browse` (same-origin only).
+
 ## [1.6.0] - 2026-11-12
 
 ### Added

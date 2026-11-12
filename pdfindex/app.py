@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import indexer
+from . import indexer, picker
 from . import notes as notes_mod
 from .__version__ import DESIGNER, RELEASE_TIMESTAMP, __version__
 from .config import Config, add_folder, enabled_folders, remove_folder, set_folder_enabled
@@ -345,6 +345,13 @@ def create_app(cfg: Config, ocr=None, watch=True):
     @app.post("/api/folders")
     def folders_add(body: FolderBody):
         return change_folders(add_folder, body)
+
+    @app.post("/api/folders/browse")
+    def folders_browse():
+        picked = picker.pick_folder()
+        if picked is None:
+            raise HTTPException(503, "No folder dialog available here. Paste the folder path instead.")
+        return {"path": picked}
 
     @app.delete("/api/folders")
     def folders_remove(body: FolderBody):

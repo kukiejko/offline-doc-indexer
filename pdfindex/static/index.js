@@ -354,6 +354,26 @@ async function changeFolder(method, path) {
     return false;
   }
 }
+$('#browsefolder').onclick = async () => {
+  const msg = $('#foldermsg'), btn = $('#browsefolder');
+  msg.textContent = 'A folder window has opened on the computer running the app…';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/folders/browse', {method: 'POST'});
+    if (!r.ok) {
+      let d = 'HTTP ' + r.status;
+      try { d = (await r.json()).detail || d; } catch (e) {}
+      msg.innerHTML = `<span class="err">${esc(String(d))}</span>`;
+    } else {
+      const p = (await r.json()).path;
+      if (p) { $('#newfolder').value = p; msg.textContent = 'Folder selected. Press "Add folder and index".'; }
+      else msg.textContent = 'No folder selected.';
+    }
+  } catch (e) {
+    msg.innerHTML = '<span class="err">Could not reach the app. Try again.</span>';
+  }
+  btn.disabled = false;
+};
 $('#addfolder').onclick = async () => {
   if (await changeFolder('POST', $('#newfolder').value)) $('#newfolder').value = '';
 };

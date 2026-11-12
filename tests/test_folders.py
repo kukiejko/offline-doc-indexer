@@ -45,6 +45,17 @@ def test_add_folder_validation(setup, tmp_path):
     assert client.post("/api/folders", json={"path": str(b)}, headers={"origin": "http://evil.example"}).status_code == 403
 
 
+def test_browse_folder_returns_pick_and_is_origin_protected(setup, monkeypatch):
+    client, _, b = setup
+    monkeypatch.setattr("pdfindex.picker.pick_folder", lambda: str(b))
+    assert client.post("/api/folders/browse").json() == {"path": str(b)}
+    monkeypatch.setattr("pdfindex.picker.pick_folder", lambda: "")
+    assert client.post("/api/folders/browse").json() == {"path": ""}
+    monkeypatch.setattr("pdfindex.picker.pick_folder", lambda: None)
+    assert client.post("/api/folders/browse").status_code == 503
+    assert client.post("/api/folders/browse", headers={"origin": "http://evil.example"}).status_code == 403
+
+
 def test_remove_folder(setup, tmp_path):
     client, cfg_path, b = setup
     client.post("/api/folders", json={"path": str(b)})
