@@ -118,7 +118,7 @@ def test_notes_api_and_viewer(client):
     assert 'File filter' in js and 'pdfindex.filesOpen' in js and "classList.toggle('active'" in js and '#filesbtn.active' in client.get('/static/app.css').text
     assert "embed=1" in js and "pdfindex.split" in js
     assert "renderScan.wasRunning" in js  # panel opens once per scan, so polling never re-opens a collapsed panel
-    assert home.index('id="filesbtn"') < home.index('id="q"') < home.index('id="files"') and home.index('id="q"') > home.index('</header>') and 'Limit to folder path' in home
+    assert home.index('id="filesbtn"') < home.index('id="files"') < home.index('id="q"') < home.index('id="results"') and home.index('id="q"') > home.index('</header>') and 'Limit to folder path' in home
     assert home.index('</header>') < home.index('id="tab-search"') < home.index('id="search"') and home.index('id="tab-issues"') < home.index('id="search"')
     assert "e.key !== '/'" in js
     assert "embed" in client.get("/static/viewer.js").text

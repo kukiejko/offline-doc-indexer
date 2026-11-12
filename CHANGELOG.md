@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.6] - 2026-11-12
+
+### Changed
+- The File filter list now opens **above** the search box (order: File filter button, expanded file list, search box, results).
+
 ## [1.8.5] - 2026-11-12
 
 ### Changed
