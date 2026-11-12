@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.10] - 2026-11-12
+
+### Changed
+- The "Limit to folder path" field in the Filters tab is now as large as the search box (18px text, 2px border, same padding and focus ring, up to 720px wide) with its label above it.
+
 ## [1.8.9] - 2026-11-12
 
 ### Changed

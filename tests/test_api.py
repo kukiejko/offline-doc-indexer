@@ -125,6 +125,8 @@ def test_notes_api_and_viewer(client):
     assert 'id="searchbtn"' in home and home.index('id="q"') < home.index('id="searchbtn"') < home.index('id="results"') and 'searchNow' in js
     assert 'id="tab-index"' in home and 'id="rescan"' not in home and home.index('id="tab-index"') < home.index('id="scanpanel"') and 'showPanel' not in js and "`Index ${" in js
     assert "e.key !== '/'" in js
+    css = client.get('/static/app.css').text
+    assert '.folderlimit input{' in css and 'font-size:18px' in css.split('.folderlimit input{')[1].split('}')[0]
     assert "embed" in client.get("/static/viewer.js").text
     assert 'id="foldall"' in home and 'id="unfoldall"' in home
     assert 'id="sort"' in home and "Most hits first" in home and "File name Z" in home
