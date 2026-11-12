@@ -2,6 +2,18 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.9.0] - 2026-11-12
+
+Release summary of 1.4.0–1.8.10 (details in the entries below).
+
+### Added
+- **Multiple document folders:** add/remove folders in the UI (paste a path or **Browse…**), each with its own `docindex.db` index (legacy single database migrated), per-folder on/off switches; search, notes, issues and rescan work across all enabled folders.
+- Search works while indexing runs in the background.
+- Logo and favicon (SVG, ICO, PNG).
+
+### Changed
+- New layout: tabs Search · Filters · Index · Notes · Issues; large central search box with a Search button; filters in their own tab with an active-filter hint; indexing progress shown on the Index tab label.
+
 ## [1.8.10] - 2026-11-12
 
 ### Changed
