@@ -2,6 +2,12 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.0] - 2026-11-12
+
+### Changed
+- **Header order:** logo/title, then the Index / Rescan button, then the search box.
+- **You can search while indexing runs.** Search, notes and the viewer keep working during a scan and show the documents indexed so far. While a scan runs, the result line says results may be incomplete, and an active search refreshes when new documents appear.
+
 ## [1.7.1] - 2026-11-12
 
 ### Added

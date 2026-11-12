@@ -1,6 +1,7 @@
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name = p => p.split(/[\\/]/).pop();
+let indexing = false, lastDocs = null;
 let searchSeq = 0, selHref = null, fsel = new Set(), fmode = 'only', allDocs = null;
 
 async function doSearch() {
@@ -26,7 +27,8 @@ async function doSearch() {
     return;
   }
   if (seq !== searchSeq) return; // a newer search is in flight
-  $('#count').textContent = d.count ? `${d.count} result${d.count === 1 ? '' : 's'} in ${d.groups.length} file${d.groups.length === 1 ? '' : 's'}` : '';
+  $('#count').textContent = (d.count ? `${d.count} result${d.count === 1 ? '' : 's'} in ${d.groups.length} file${d.groups.length === 1 ? '' : 's'}` : '') +
+    (indexing ? (d.count ? ' · ' : '') + 'Indexing in progress: results so far may be incomplete.' : '');
   if (q !== foldQ) { opened.clear(); showAll.clear(); foldQ = q; }
   lastData = d; lastQ = q;
   render();
@@ -309,6 +311,10 @@ async function poll() {
     `${s.documents} PDFs indexed.`;
   renderScan(s);
   renderFolders(s.folders, s.disabled_folders);
+  const changed = indexing !== !!s.running || (s.running && lastDocs !== null && lastDocs !== s.documents);
+  indexing = !!s.running;
+  lastDocs = s.documents;
+  if (changed && $('#q').value.trim()) doSearch();
   if (s.running) pollTimer = setTimeout(poll, 1000);
 }
 

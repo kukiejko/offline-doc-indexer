@@ -63,6 +63,30 @@ def test_single_scan_at_a_time_and_cancel(tmp_path, pdf_dir):
     assert scanner.state["last"]["cancelled"] and scanner.state["last"]["indexed"] == 0
 
 
+def test_search_works_while_indexing_runs(tmp_path, pdf_dir):
+    make_text_pdf(pdf_dir / "a.pdf", ["alpha page"])
+    make_image_pdf(pdf_dir / "b.pdf", "body", "x")
+    gate, entered = threading.Event(), threading.Event()
+
+    def slow_ocr(png):
+        entered.set()
+        gate.wait(10)
+        return "text"
+
+    app = create_app(Config(folders=[str(pdf_dir)], db_path=str(tmp_path / "w.db")), ocr=slow_ocr, watch=False)
+    client = TestClient(app, base_url="http://localhost")
+    assert client.post("/api/rescan").status_code == 200
+    try:
+        assert entered.wait(10)
+        assert client.get("/api/status").json()["running"]
+        r = client.get("/api/search", params={"q": "alpha"})
+        assert r.status_code == 200 and r.json()["count"] == 1
+    finally:
+        gate.set()
+        while app.state.scanner.state["running"]:
+            threading.Event().wait(0.02)
+
+
 def test_status_has_summary_after_finish_and_mode_validation(tmp_path, pdf_dir):
     make_text_pdf(pdf_dir / "a.pdf", ["alpha"])
     app = create_app(Config(folders=[str(pdf_dir)], db_path=str(tmp_path / "a.db")), ocr=None, watch=False)
