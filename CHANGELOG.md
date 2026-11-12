@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.1] - 2026-11-12
+
+### Fixed
+- The logo now shows in the browser tab and address bar: the app serves `/favicon.ico` and the pages link PNG, ICO and SVG icons (plus an Apple touch icon). Browsers cache icons; press Ctrl+F5 if the old icon stays.
+
 ## [1.8.0] - 2026-11-12
 
 ### Changed

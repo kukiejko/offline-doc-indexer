@@ -45,6 +45,16 @@ def test_add_folder_validation(setup, tmp_path):
     assert client.post("/api/folders", json={"path": str(b)}, headers={"origin": "http://evil.example"}).status_code == 403
 
 
+def test_favicon_served_and_linked(setup):
+    client, _, _ = setup
+    r = client.get("/favicon.ico")
+    assert r.status_code == 200 and r.content[:4] == b"\x00\x00\x01\x00"
+    for page in ("/", "/static/viewer.html"):
+        html = client.get(page).text
+        assert 'href="/favicon.ico"' in html and "logo-32.png" in html
+    assert client.get("/static/logo-32.png").content[:4] == b"\x89PNG"
+
+
 def test_browse_folder_returns_pick_and_is_origin_protected(setup, monkeypatch):
     client, _, b = setup
     monkeypatch.setattr("pdfindex.picker.pick_folder", lambda: str(b))

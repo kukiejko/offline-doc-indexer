@@ -273,6 +273,10 @@ def create_app(cfg: Config, ocr=None, watch=True):
     def index():
         return FileResponse(STATIC / "index.html")
 
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon():
+        return FileResponse(STATIC / "favicon.ico", media_type="image/x-icon")
+
     @app.get("/view/{doc_id}")
     def view(doc_id: int):
         return FileResponse(STATIC / "viewer.html")
