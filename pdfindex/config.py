@@ -11,6 +11,7 @@ from .extract import ALL_TYPES
 @dataclass
 class Config:
     folders: list = field(default_factory=list)
+    disabled_folders: list = field(default_factory=list)
     tesseract_path: str = ""
     min_ocr_image_px: int = 100
     watcher: bool = False
@@ -20,28 +21,38 @@ class Config:
     config_path: str = ""
 
 
-_FOLDERS_RE = re.compile(r"^folders\s*=\s*\[.*?\]", re.S | re.M)
+_LIST_RE = {k: re.compile(rf"^{k}\s*=\s*\[.*?\]", re.S | re.M) for k in ("folders", "disabled_folders")}
 
 
 def _norm(p):
     return os.path.normcase(str(Path(p).resolve()))
 
 
-def save_folders(path, entries):
-    """Rewrite only the `folders` entry of the config file, keeping all other lines and comments."""
+def _save_list(path, key, entries):
+    """Rewrite only one list entry of the config file, keeping all other lines and comments."""
     p = Path(path)
     text = p.read_text(encoding="utf-8") if p.exists() else ""
-    line = "folders = [" + ", ".join(json.dumps(str(e).replace("\\", "/"), ensure_ascii=False) for e in entries) + "]"
-    if _FOLDERS_RE.search(text):
-        text = _FOLDERS_RE.sub(lambda m: line, text, count=1)
+    line = f"{key} = [" + ", ".join(json.dumps(str(e).replace("\\", "/"), ensure_ascii=False) for e in entries) + "]"
+    if _LIST_RE[key].search(text):
+        text = _LIST_RE[key].sub(lambda m: line, text, count=1)
     else:
         text = line + "\n" + text
     p.write_text(text, encoding="utf-8")
 
 
-def _raw_folders(path):
+def _raw_list(path, key):
     p = Path(path)
-    return list(tomllib.loads(p.read_text(encoding="utf-8")).get("folders", [])) if p.exists() else []
+    return list(tomllib.loads(p.read_text(encoding="utf-8")).get(key, [])) if p.exists() else []
+
+
+def _without(raw, target, config_path):
+    base = Path(config_path).resolve().parent
+    return [r for r in raw if _norm(r if Path(r).is_absolute() else base / r) != target]
+
+
+def enabled_folders(cfg):
+    off = {_norm(f) for f in cfg.disabled_folders}
+    return [f for f in cfg.folders if _norm(f) not in off]
 
 
 def add_folder(cfg, folder):
@@ -59,7 +70,7 @@ def add_folder(cfg, folder):
     resolved = str(q.resolve())
     if any(_norm(f) == _norm(resolved) for f in cfg.folders):
         raise KeyError("This folder is already indexed.")
-    save_folders(cfg.config_path, _raw_folders(cfg.config_path) + [resolved])
+    _save_list(cfg.config_path, "folders", _raw_list(cfg.config_path, "folders") + [resolved])
     cfg.folders.append(resolved)
     return resolved
 
@@ -71,17 +82,33 @@ def remove_folder(cfg, folder):
     target = _norm(folder)
     if not any(_norm(f) == target for f in cfg.folders):
         raise KeyError("This folder is not in the list.")
-    base = Path(cfg.config_path).resolve().parent
-    kept = [r for r in _raw_folders(cfg.config_path)
-            if _norm(r if Path(r).is_absolute() else base / r) != target]
-    save_folders(cfg.config_path, kept)
+    _save_list(cfg.config_path, "folders", _without(_raw_list(cfg.config_path, "folders"), target, cfg.config_path))
     cfg.folders[:] = [f for f in cfg.folders if _norm(f) != target]
+    if any(_norm(f) == target for f in cfg.disabled_folders):
+        _save_list(cfg.config_path, "disabled_folders",
+                   _without(_raw_list(cfg.config_path, "disabled_folders"), target, cfg.config_path))
+        cfg.disabled_folders[:] = [f for f in cfg.disabled_folders if _norm(f) != target]
+
+
+def set_folder_enabled(cfg, folder, enabled):
+    """Switch a configured folder on or off (persisted as `disabled_folders`). Raises KeyError when unknown."""
+    if not cfg.config_path:
+        raise ValueError("No config file is in use, so the setting cannot be saved.")
+    target = _norm(folder)
+    match = next((f for f in cfg.folders if _norm(f) == target), None)
+    if match is None:
+        raise KeyError("This folder is not in the list.")
+    cfg.disabled_folders[:] = [f for f in cfg.disabled_folders if _norm(f) != target]
+    if not enabled:
+        cfg.disabled_folders.append(match)
+    raw = _without(_raw_list(cfg.config_path, "disabled_folders"), target, cfg.config_path)
+    _save_list(cfg.config_path, "disabled_folders", raw if enabled else raw + [match])
 
 
 def load_config(path="config.toml"):
     p = Path(path)
     if not p.exists():
-        return Config()
+        return Config(config_path=str(p.resolve()))
     data = tomllib.loads(p.read_text(encoding="utf-8"))
     base = p.resolve().parent
 
@@ -91,11 +118,12 @@ def load_config(path="config.toml"):
 
     return Config(
         folders=[resolve(f) for f in data.get("folders", [])],
+        disabled_folders=[resolve(f) for f in data.get("disabled_folders", [])],
         tesseract_path=data.get("tesseract_path", ""),
         min_ocr_image_px=int(data.get("min_ocr_image_px", 100)),
         watcher=bool(data.get("watcher", False)),
         verify_checksums=bool(data.get("verify_checksums", False)),
         db_path=resolve(data.get("db_path", "pdfindex.db")),
         file_types=[t for t in (str(x).lower().lstrip(".") for x in data.get("file_types", ALL_TYPES)) if t in ALL_TYPES],
-                config_path=str(p.resolve()),
+        config_path=str(p.resolve()),
     )

@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from . import indexer
+from .config import enabled_folders
 from .db import connect
 
 DB_NAME = "docindex.db"
@@ -83,7 +84,7 @@ def scan_all(cfg, ocr, progress=None, force=False, cancel=None, report=None, ver
              "modified_files": [], "cancelled": False, "unsupported": 0}
     base = dict.fromkeys(COUNTERS, 0)
     errors = []
-    for folder in list(cfg.folders):
+    for folder in enabled_folders(cfg):
         if cancel is not None and cancel.is_set():
             total["cancelled"] = True
             break

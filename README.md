@@ -34,7 +34,8 @@ copy config.example.toml config.toml          # then edit "folders"
 
 | Key | Meaning |
 |---|---|
-| `folders` | PDF folders, searched recursively |
+| `folders` | Document folders, searched recursively; each keeps its own index file. Also managed in the UI |
+| `disabled_folders` | Folders from `folders` that are switched off (skipped in search and rescan); set with the UI checkboxes |
 | `tesseract_path` | Path to `tesseract.exe`; empty = auto-detect |
 | `min_ocr_image_px` | OCR only images at least this wide and tall (default 100) |
 | `file_types` | file types to index, default all: `["pdf", "docx", "xlsx", "pptx", "txt", "md"]` |
@@ -68,6 +69,7 @@ Do not run two scans against the same database at once.
 - **Issues tab:** corrupt or password-protected PDFs and OCR failures. Unchanged errored PDFs are not retried on every scan.
 - **Modified PDFs**: the fast scan compares size and date and only hashes files that differ (same hash + new date = just the date is updated). Choose **Verify checksums** in the Index panel (or `verify_checksums = true`, or `scan --verify`) to hash every file and catch edits that keep size and date; progress shows a "Checking checksum" phase. A changed file is fully re-indexed (text + OCR) keeping its id and notes; its notes get a "Document changed since this note was written" warning (in the viewer and Notes list) that you can dismiss, and editing the note clears it. The scan summary shows the modified count and lists the files.
 - **Moved / renamed PDFs** are detected during a scan: a new path with the same size and content hash as a missing document relinks the existing entry (same id, notes and indexed text, no re-OCR). Identical duplicates are matched one-to-one, preferring the same file name. A moved *and edited* file is not relinked silently: it is indexed as new and an Issue "Possibly moved" is added. PDFs that were really deleted become *missing* (hidden from search); their notes are kept under **Notes → Orphaned notes**, where they can be relinked to another indexed file. The scan summary shows moved and missing counts, and the watcher also reacts to move/rename and folder-move events.
+The panel lists the folders with an on/off checkbox each: a switched-off folder is skipped in search and rescans (its index and notes are kept) and the choice is saved in `config.toml`. API: `PUT /api/folders/enabled`.
 - **Document folders:** the Index / Rescan panel lists the configured folders. Type a full path and press **Add folder and index** to add one (it must exist and be a folder); it is saved to `config.toml` and indexed straight away. **Remove** drops a folder from the config (files are never deleted; they leave the index on the rescan). A folder added this way is picked up by the watcher after a restart. API: `POST`/`DELETE /api/folders` with `{"path": "..."}`.
 - **Index / Rescan** button (header) opens the indexing panel: choose *new/changed files only* (fast; unchanged files are skipped) or *full re-index incl. OCR*, then Start. The panel shows an overall page progress bar, files/pages done, current file and page, phase (text / OCR), elapsed time and rough ETA, OCR image, error and issue counts, and a **Cancel** button (stops at the next page; the PDF in progress is not half-indexed). Only one run at a time; progress continues after a page reload, and a summary (indexed/skipped/failed, duration) is shown when finished. The watcher uses the changed-only mode. API: `POST /api/rescan?mode=changed|full`, `POST /api/scan/cancel`, `GET /api/status`.
 

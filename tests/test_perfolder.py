@@ -108,3 +108,28 @@ def wait_idle(client):
     sc = client.app.state.scanner
     while sc.state["running"]:
         time.sleep(0.05)
+
+
+def test_switching_a_folder_off_skips_it_in_search_and_rescan_and_persists(tmp_path):
+    a, b, _ = two_folders(tmp_path)
+    cfg_path = tmp_path / "config.toml"
+    cfg_path.write_text('folders = ["a", "b"]\nwatcher = false\n', encoding="utf-8")
+    client = TestClient(create_app(load_config(cfg_path), ocr=fake_ocr, watch=False), base_url="http://localhost")
+    client.app.state.scanner.run_blocking()
+    assert client.get("/api/search", params={"q": "shared"}).json()["count"] == 2
+    r = client.put("/api/folders/enabled", json={"path": str(b), "enabled": False})
+    assert r.status_code == 200
+    assert client.get("/api/search", params={"q": "shared"}).json()["count"] == 1
+    assert [Path(d["path"]).name for d in client.get("/api/docs").json()] == ["one.pdf"]
+    assert client.get("/api/status").json()["documents"] == 1
+    assert load_config(cfg_path).disabled_folders == [str(b.resolve())]
+    make_text_pdf(b / "three.pdf", ["shared extra"])
+    client.app.state.scanner.run_blocking()
+    assert count(b / DB_NAME, "SELECT COUNT(*) FROM documents") == 1
+    assert client.get(f"/api/docs/{SLOT + 1}").status_code == 404
+    client.put("/api/folders/enabled", json={"path": str(b), "enabled": True})
+    wait_idle(client)
+    assert client.get("/api/search", params={"q": "shared"}).json()["count"] == 3
+    assert load_config(cfg_path).disabled_folders == []
+    assert client.put("/api/folders/enabled", json={"path": str(tmp_path / "x"), "enabled": False}).status_code == 404
+    assert "watcher = false" in cfg_path.read_text(encoding="utf-8")

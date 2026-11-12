@@ -14,7 +14,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from . import indexer
 from . import notes as notes_mod
 from .__version__ import DESIGNER, RELEASE_TIMESTAMP, __version__
-from .config import Config, add_folder, remove_folder
+from .config import Config, add_folder, enabled_folders, remove_folder, set_folder_enabled
 from .extract import ALL_TYPES, TYPE_LABELS, UNIT_NAMES, doc_type, LEGACY_EXTS
 from .store import scan_all
 from .db import list_issues
@@ -48,6 +48,11 @@ class RelinkBody(BaseModel):
 
 class FolderBody(BaseModel):
     path: str
+
+
+class FolderEnabledBody(BaseModel):
+    path: str
+    enabled: bool
 
 
 class Scanner:
@@ -232,7 +237,7 @@ def create_app(cfg: Config, ocr=None, watch=True):
         return response
 
     def open_slot(slot):
-        if not 0 <= slot < len(cfg.folders):
+        if not 0 <= slot < len(cfg.folders) or cfg.folders[slot] not in enabled_folders(cfg):
             raise HTTPException(404, "Document not found")
         try:
             return open_folder_db(cfg.folders[slot], cfg.db_path)
@@ -247,7 +252,7 @@ def create_app(cfg: Config, ocr=None, watch=True):
     def each_db():
         """Yield (slot, conn) for every folder whose index can be opened; closes each connection afterwards."""
         for slot, folder in enumerate(list(cfg.folders)):
-            if not Path(folder).is_dir():
+            if folder not in enabled_folders(cfg) or not Path(folder).is_dir():
                 continue
             try:
                 conn = open_folder_db(folder, cfg.db_path)
@@ -345,6 +350,17 @@ def create_app(cfg: Config, ocr=None, watch=True):
     def folders_remove(body: FolderBody):
         return change_folders(remove_folder, body)
 
+    @app.put("/api/folders/enabled")
+    def folders_enable(body: FolderEnabledBody):
+        try:
+            set_folder_enabled(cfg, body.path, body.enabled)
+        except KeyError as e:
+            raise HTTPException(404, e.args[0])
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+        return {"disabled_folders": cfg.disabled_folders,
+                "rescan_started": scanner.start(queue=True) if body.enabled else False}
+
     @app.post("/api/scan/cancel")
     def cancel_scan():
         return {"cancelled": scanner.cancel()}
@@ -367,6 +383,7 @@ def create_app(cfg: Config, ocr=None, watch=True):
         for _, conn in each_db():
             n += conn.execute("SELECT COUNT(*) c FROM documents WHERE status='ok'").fetchone()["c"]
         return {**scanner.snapshot(), "documents": n, "ocr_available": ocr is not None, "folders": cfg.folders,
+                "disabled_folders": cfg.disabled_folders,
                 "file_types": cfg.file_types, "type_labels": TYPE_LABELS}
 
     @app.get("/api/issues")

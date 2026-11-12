@@ -2,6 +2,14 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.6.0] - 2026-11-12
+
+### Added
+- **Folders can be switched on or off** with a checkbox in the Index / Rescan panel (also for the main folder). Switched-off folders are skipped in search, notes, issues and rescans, but keep their index file and notes. The state is saved in `config.toml` as `disabled_folders`. API: `PUT /api/folders/enabled` with `{"path": "...", "enabled": true|false}`.
+
+### Changed
+- Starting without a `config.toml` is now fine: folders added in the UI create it.
+
 ## [1.5.0] - 2026-11-12
 
 ### Changed

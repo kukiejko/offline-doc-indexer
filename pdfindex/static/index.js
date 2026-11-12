@@ -308,15 +308,32 @@ async function poll() {
   $('#status').innerHTML = (s.ocr_available ? '' : '<div class="warn">Tesseract not found: text inside images is not indexed. See README.</div>') +
     `${s.documents} PDFs indexed.`;
   renderScan(s);
-  renderFolders(s.folders);
+  renderFolders(s.folders, s.disabled_folders);
   if (s.running) pollTimer = setTimeout(poll, 1000);
 }
 
-function renderFolders(folders) {
+function renderFolders(folders, disabled = []) {
+  const off = new Set(disabled);
   $('#folderlist').innerHTML = folders.length
-    ? folders.map(f => `<li>${esc(f)} <button type="button" class="rmfolder" data-path="${esc(f)}" aria-label="Remove folder ${esc(f)}">Remove</button></li>`).join('')
+    ? folders.map(f => `<li><label><input type="checkbox" class="togfolder" data-path="${esc(f)}"${off.has(f) ? '' : ' checked'}> ${esc(f)}</label> <button type="button" class="rmfolder" data-path="${esc(f)}" aria-label="Remove folder ${esc(f)}">Remove</button></li>`).join('')
     : '<li class="muted">No folders configured.</li>';
 }
+
+async function toggleFolder(path, enabled) {
+  const msg = $('#foldermsg');
+  try {
+    const r = await fetch('/api/folders/enabled', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path, enabled})});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    msg.textContent = enabled ? 'Folder switched on; indexing started.' : 'Folder switched off: it is skipped in search and indexing.';
+    if (typeof doSearch === 'function') doSearch();
+  } catch (e) {
+    msg.innerHTML = '<span class="err">Could not change the folder. Try again.</span>';
+  }
+  poll();
+}
+$('#folderlist').addEventListener('change', e => {
+  if (e.target.classList.contains('togfolder')) toggleFolder(e.target.dataset.path, e.target.checked);
+});
 
 async function changeFolder(method, path) {
   const msg = $('#foldermsg');
