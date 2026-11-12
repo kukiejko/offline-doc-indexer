@@ -308,8 +308,42 @@ async function poll() {
   $('#status').innerHTML = (s.ocr_available ? '' : '<div class="warn">Tesseract not found: text inside images is not indexed. See README.</div>') +
     `${s.documents} PDFs indexed.`;
   renderScan(s);
+  renderFolders(s.folders);
   if (s.running) pollTimer = setTimeout(poll, 1000);
 }
+
+function renderFolders(folders) {
+  $('#folderlist').innerHTML = folders.length
+    ? folders.map(f => `<li>${esc(f)} <button type="button" class="rmfolder" data-path="${esc(f)}" aria-label="Remove folder ${esc(f)}">Remove</button></li>`).join('')
+    : '<li class="muted">No folders configured.</li>';
+}
+
+async function changeFolder(method, path) {
+  const msg = $('#foldermsg');
+  msg.textContent = '';
+  try {
+    const r = await fetch('/api/folders', {method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path})});
+    if (!r.ok) {
+      let d = 'HTTP ' + r.status;
+      try { d = (await r.json()).detail || d; } catch (e) {}
+      msg.innerHTML = `<span class="err">${esc(String(d))}</span>`;
+      return false;
+    }
+    msg.textContent = method === 'POST' ? 'Folder added; indexing started.' : 'Folder removed; its files drop out of the index after the rescan.';
+    poll();
+    return true;
+  } catch (e) {
+    msg.innerHTML = '<span class="err">Could not reach the app. Try again.</span>';
+    return false;
+  }
+}
+$('#addfolder').onclick = async () => {
+  if (await changeFolder('POST', $('#newfolder').value)) $('#newfolder').value = '';
+};
+$('#folderlist').addEventListener('click', e => {
+  const b = e.target.closest('button.rmfolder');
+  if (b && confirm('Remove this folder from the index? Your files are not deleted; notes on them are kept as orphaned notes.\n\n' + b.dataset.path)) changeFolder('DELETE', b.dataset.path);
+});
 
 async function loadList(url, el, render, empty) {
   el.innerHTML = '<p class="muted">Loading…</p>';

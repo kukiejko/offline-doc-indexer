@@ -14,7 +14,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from . import indexer
 from . import notes as notes_mod
 from .__version__ import DESIGNER, RELEASE_TIMESTAMP, __version__
-from .config import Config
+from .config import Config, add_folder, remove_folder
 from .extract import ALL_TYPES, TYPE_LABELS, UNIT_NAMES, doc_type, LEGACY_EXTS
 from .db import connect, list_issues
 from .search import group_by_document, search
@@ -42,6 +42,10 @@ class NoteBody(BaseModel):
 
 class RelinkBody(BaseModel):
     target_id: int
+
+
+class FolderBody(BaseModel):
+    path: str
 
 
 class Scanner:
@@ -288,6 +292,23 @@ def create_app(cfg: Config, ocr=None, watch=True):
         if mode not in ("changed", "verify", "full"):
             raise HTTPException(422, "mode must be 'changed', 'verify' or 'full'")
         return {"started": scanner.start(full=mode == "full", verify=mode == "verify")}
+
+    def change_folders(fn, body):
+        try:
+            fn(cfg, body.path)
+        except KeyError as e:
+            raise HTTPException(409 if fn is add_folder else 404, e.args[0])
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+        return {"folders": cfg.folders, "rescan_started": scanner.start(queue=True)}
+
+    @app.post("/api/folders")
+    def folders_add(body: FolderBody):
+        return change_folders(add_folder, body)
+
+    @app.delete("/api/folders")
+    def folders_remove(body: FolderBody):
+        return change_folders(remove_folder, body)
 
     @app.post("/api/scan/cancel")
     def cancel_scan():

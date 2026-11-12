@@ -24,6 +24,12 @@
 <div id="top"><main>
 <div id="status" class="muted" role="status" aria-live="polite"></div>
 <section id="scanpanel" hidden aria-label="Indexing">
+<fieldset id="folderbox"><legend>Document folders</legend>
+<ul id="folderlist"></ul>
+<label>Add folder: <input id="newfolder" type="text" placeholder="Full path, e.g. C:\Docs\Manuals" size="40"></label>
+<button id="addfolder" type="button">Add folder and index</button>
+<div id="foldermsg" role="status" aria-live="polite"></div>
+</fieldset>
 <fieldset id="scanmode"><legend>Index mode</legend>
 <label><input type="radio" name="smode" value="changed" checked> Scan new/changed files only (fast: checks size and date)</label>
 <label><input type="radio" name="smode" value="verify"> Verify checksums (slower: detects edited files even if size and date look unchanged)</label>

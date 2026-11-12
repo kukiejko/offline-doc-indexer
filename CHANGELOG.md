@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.4.0] - 2026-11-12
+
+### Added
+- **Add / remove document folders in the web UI** (Index / Rescan panel). The path is validated (must exist and be a folder, no duplicates), saved to `config.toml` (other settings and comments are kept) and a rescan starts so the new documents are indexed. API: `POST` / `DELETE /api/folders` with `{"path": "..."}`. A newly added folder is watched by the automatic watcher after the next restart.
+
 ## [1.3.3] - 2026-11-12
 
 ### Changed
