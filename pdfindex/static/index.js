@@ -477,6 +477,7 @@ top_.addEventListener('click', e => {
 });
 top_.addEventListener('keydown', e => {
   if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  if (e.target.closest('[role=tablist]')) return;
   const hits = [...top_.querySelectorAll('[role=tabpanel]:not([hidden]) a.hit')].filter(a => !a.hidden && !a.closest('[hidden]'));
   const i = hits.indexOf(document.activeElement);
   if (!hits.length || i < 0) return;

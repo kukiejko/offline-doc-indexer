@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.5] - 2026-11-12
+
+### Changed
+- **The Search / Notes / Issues tabs moved from the header to the main screen**, just above the search area, so they stay visible on every tab and you can always get back to Search. The header keeps the logo/title, Index / Rescan and Help.
+
 ## [1.8.4] - 2026-11-12
 
 ### Changed

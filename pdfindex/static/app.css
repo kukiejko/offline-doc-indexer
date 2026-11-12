@@ -18,9 +18,9 @@ button,a.btn{font:inherit;padding:7px 12px;border:0;border-radius:4px;background
 #bar #back{margin-right:12px;white-space:nowrap}
 #bar #searched{margin-right:12px}
 button:disabled{opacity:.6;cursor:default}
-[role=tablist]{display:flex;gap:4px}
-[role=tab]{background:transparent;color:#dbe6ff;border-radius:4px 4px 0 0}
-[role=tab][aria-selected=true]{background:#fff;color:var(--brand);font-weight:600}
+[role=tablist]{display:flex;gap:4px;border-bottom:2px solid var(--brand);margin:.5rem 0}
+[role=tab]{background:#e8edf6;color:var(--brand);border-radius:4px 4px 0 0}
+[role=tab][aria-selected=true]{background:var(--brand);color:#fff;font-weight:600}
 .bar{display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap;color:var(--muted);font-size:13px}
 .doc{background:#fff;border-radius:6px;margin-bottom:12px;padding:10px 14px;box-shadow:0 1px 2px #0002}
 .doc h3{margin:0 0 6px;font-size:16px}
