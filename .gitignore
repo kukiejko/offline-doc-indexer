@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.db
+.pytest_cache/
+config.toml
+*.db-*
+*.sqlite*
+.impeccable/
+tmp*/
+*.log
+.env

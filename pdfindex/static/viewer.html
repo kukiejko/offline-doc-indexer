@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>PDF Viewer</title>
+<link rel="stylesheet" href="/static/app.css">
+</head><body class="viewer">
+<div id="main">
+<div id="bar"><a id="back" class="btn" href="/">← Back to search</a><span id="searched" class="muted"></span><button id="prev" type="button" aria-label="Previous page">◀</button>
+<span><label for="pg" id="pglabel">Page</label> <input id="pg" type="number" min="1"> / <span id="tot"></span></span>
+<button id="next" type="button" aria-label="Next page">▶</button><strong id="title" class="gap"></strong><span id="typebadge" class="ftbadge"></span><a id="orig" class="btn" href="#" download hidden>Open original file</a><span id="notemark" role="img"></span></div>
+<div id="banner" role="status"></div>
+<div id="scroll"><div id="pages"></div></div>
+</div>
+<div id="side"><label for="note"><strong id="notelabel">Notes for this page</strong></label><div id="stale" class="warn" role="alert" hidden><span id="staletext"></span> <button id="staledismiss" type="button">Dismiss</button></div><textarea id="note" placeholder="Type a note… (autosaved)"></textarea><span id="saved" class="muted" role="status" aria-live="polite"></span></div>
+<script type="module" src="/static/viewer.js"></script>
+</body></html>

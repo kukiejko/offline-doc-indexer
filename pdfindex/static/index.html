@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>PDF Indexer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="/static/app.css">
+</head><body class="split">
+<header><h1>PDF Indexer</h1>
+<input id="q" type="search" aria-label="Search PDFs" placeholder='Search words or "exact phrase"' autofocus>
+<button id="rescan" type="button" aria-expanded="false" aria-controls="scanpanel">Index / Rescan</button>
+<div role="tablist" aria-label="Views">
+<button role="tab" id="tab-search" aria-controls="search" aria-selected="true" data-t="search" type="button">Search</button>
+<button role="tab" id="tab-notes" aria-controls="notes" aria-selected="false" tabindex="-1" data-t="notes" type="button">Notes</button>
+<button role="tab" id="tab-issues" aria-controls="issues" aria-selected="false" tabindex="-1" data-t="issues" type="button">Issues</button>
+</div><button id="helpbtn" type="button" aria-haspopup="dialog">Help</button></header>
+<dialog id="helpdlg" aria-labelledby="helptitle">
+<div class="dlghead"><h2 id="helptitle">About / Release info</h2><button id="helpclose" type="button" aria-label="Close help">✕</button></div>
+<p id="verinfo">Loading…</p>
+<p><a href="/api/readme" target="_blank" rel="noopener">Usage help (README)</a></p>
+<h3>Keyboard shortcuts</h3>
+<ul class="keys"><li><kbd>↓</kbd> in the search box: jump to the first result</li><li><kbd>↑</kbd>/<kbd>↓</kbd> on results: previous/next result, opens it below</li><li><kbd>←</kbd>/<kbd>→</kbd> or <kbd>↑</kbd>/<kbd>↓</kbd> on the splitter: resize panes</li><li><kbd>Esc</kbd>: close this window</li></ul>
+<h3>Changelog</h3>
+<pre id="changelog" tabindex="0">Loading…</pre>
+</dialog>
+<div id="panes">
+<div id="top"><main>
+<div id="status" class="muted" role="status" aria-live="polite"></div>
+<section id="scanpanel" hidden aria-label="Indexing">
+<fieldset id="scanmode"><legend>Index mode</legend>
+<label><input type="radio" name="smode" value="changed" checked> Scan new/changed files only (fast: checks size and date)</label>
+<label><input type="radio" name="smode" value="verify"> Verify checksums (slower: detects edited files even if size and date look unchanged)</label>
+<label><input type="radio" name="smode" value="full"> Full re-index of all files, including OCR (slow)</label>
+</fieldset>
+<button id="scanstart" type="button">Start indexing</button>
+<button id="scancancel" type="button" hidden>Cancel</button>
+<div id="scanmsg" role="status" aria-live="polite"></div>
+<progress id="prog" hidden aria-label="Overall indexing progress (pages)"></progress>
+<dl id="scandet" class="scandet" hidden></dl>
+</section>
+<div id="search" role="tabpanel" aria-labelledby="tab-search">
+<div class="bar"><span>Show:</span>
+<label><input type="checkbox" class="src" value="text" checked> Text</label>
+<label><input type="checkbox" class="src" value="image" checked> Image</label>
+<label><input type="checkbox" class="src" value="note" checked> Note</label>
+<span>Types:</span>
+<label><input type="checkbox" class="ftype" value="pdf" checked> PDF</label> <label><input type="checkbox" class="ftype" value="docx" checked> Word</label> <label><input type="checkbox" class="ftype" value="xlsx" checked> Excel</label> <label><input type="checkbox" class="ftype" value="pptx" checked> PowerPoint</label> <label><input type="checkbox" class="ftype" value="txt" checked> Text</label> <label><input type="checkbox" class="ftype" value="md" checked> Markdown</label>
+<label>Folder: <input id="folder" type="text" aria-label="Folder path prefix" placeholder="path prefix"></label>
+<button id="filesbtn" type="button" aria-expanded="false" aria-controls="files">▸ File filter: all files</button>
+<span id="chip" class="chip" hidden><span id="chiptext"></span> <button id="chipclear" type="button" aria-label="Clear file filter">✕</button></span></div>
+<div id="files" class="panel" hidden role="group" aria-label="File filter">
+<div class="bar"><label><input type="radio" name="fmode" value="only" checked> Search only in selected files</label>
+<label><input type="radio" name="fmode" value="exclude"> Exclude selected files</label></div>
+<div class="bar"><input id="ffind" type="search" aria-label="Find files in list" placeholder="Find file…">
+<button id="fall" type="button">Select all</button><button id="fnone" type="button">Clear</button><button id="finv" type="button">Invert</button>
+<span class="muted" id="fcount" role="status" aria-live="polite"></span></div>
+<div id="flist"></div></div>
+<div id="count" class="muted" role="status" aria-live="polite"></div>
+<div id="foldbar" class="foldbar" hidden><button type="button" id="foldall">Fold all</button> <button type="button" id="unfoldall">Unfold all</button> <label>Sort files: <select id="sort"><option value="most">Most hits first</option><option value="fewest">Fewest hits first</option><option value="az">File name A→Z</option><option value="za">File name Z→A</option></select></label> <label>Hits within file: <select id="hitorder"><option value="page">Page order</option><option value="relevance">Relevance</option></select></label></div>
+<div id="results" aria-label="Search results (use up and down arrows to move between results)"></div></div>
+<div id="notes" role="tabpanel" aria-labelledby="tab-notes" hidden></div>
+<div id="issues" role="tabpanel" aria-labelledby="tab-issues" hidden></div>
+</main></div>
+<div id="split" role="separator" aria-orientation="horizontal" aria-label="Resize results and PDF panes" aria-controls="top" tabindex="0"></div>
+<div id="bottom"><p id="placeholder" class="muted">Select a result above to see the PDF page here.</p>
+<iframe id="pdfview" title="PDF page viewer" hidden></iframe></div>
+</div>
+<script src="/static/index.js"></script>
+</body></html>

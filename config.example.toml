@@ -1,0 +1,5 @@
+folders = ["C:/Docs/PDFs"]       # PDF folders (searched recursively)
+tesseract_path = ""              # leave empty to auto-detect
+min_ocr_image_px = 100           # OCR only images at least this wide and tall
+watcher = false                  # true: rescan automatically when PDFs change
+db_path = "pdfindex.db"
