@@ -507,7 +507,10 @@ top_.addEventListener('keydown', e => {
   n.scrollIntoView({block: 'nearest'});
   openHit(n);
 });
+const searchNow = () => { clearTimeout(t); doSearch(); };
+$('#searchbtn').onclick = searchNow;
 $('#q').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); searchNow(); return; }
   if (e.key !== 'ArrowDown') return;
   const first = $('#results a.hit:not([hidden])');
   if (first) { e.preventDefault(); first.focus(); openHit(first); }

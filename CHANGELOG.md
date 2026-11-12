@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.8] - 2026-11-12
+
+### Added
+- A visible **Search** button right of the search box. It (and Enter) searches immediately and cancels the pending live-search timer, so a search never fires twice; typing still searches live. The box and button wrap on narrow screens.
+
 ## [1.8.7] - 2026-11-12
 
 ### Changed
