@@ -260,8 +260,13 @@ function renderScan(s) {
   $('#scancancel').hidden = !s.running;
   $('#scancancel').disabled = !!s.cancelling;
   prog.hidden = det.hidden = !s.running;
+  const btn = $('#rescan');
+  btn.textContent = s.running
+    ? `Indexing ${s.pages_total ? Math.round(100 * s.pages_done / s.pages_total) : 0}%…`
+    : 'Index / Rescan';
   if (s.running) {
-    showPanel(true);
+    if (!renderScan.wasRunning) showPanel(true); // open once when a scan starts; the user can collapse it afterwards
+    renderScan.wasRunning = true;
     prog.max = s.pages_total || 1;
     prog.value = s.pages_done;
     const ph = s.phase === 'ocr' ? 'OCR of images' : s.phase === 'hashing' ? 'Checking checksum' : 'Extracting text';
@@ -292,6 +297,7 @@ function renderScan(s) {
     }
   }
   renderScan.seen = true;
+  if (!s.running) renderScan.wasRunning = false;
 }
 
 let pollTimer;

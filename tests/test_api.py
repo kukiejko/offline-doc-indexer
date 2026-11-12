@@ -117,6 +117,7 @@ def test_notes_api_and_viewer(client):
     assert 'hitOrder' in js and 'id="hitorder"' in home
     assert 'File filter' in js and 'pdfindex.filesOpen' in js and "classList.toggle('active'" in js and '#filesbtn.active' in client.get('/static/app.css').text
     assert "embed=1" in js and "pdfindex.split" in js
+    assert "renderScan.wasRunning" in js  # panel opens once per scan, so polling never re-opens a collapsed panel
     assert "embed" in client.get("/static/viewer.js").text
     assert 'id="foldall"' in home and 'id="unfoldall"' in home
     assert 'id="sort"' in home and "Most hits first" in home and "File name Z" in home

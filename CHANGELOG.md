@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.8.2] - 2026-11-12
+
+### Fixed
+- The Index / Rescan panel can now be collapsed while indexing is running. It opens once when a scan starts and no longer re-opens on every progress update. While collapsed, the button shows the progress ("Indexing 42%…").
+
 ## [1.8.1] - 2026-11-12
 
 ### Fixed
