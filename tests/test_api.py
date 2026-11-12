@@ -149,6 +149,7 @@ def test_version_changelog_and_cli(client):
     assert f"## [{__version__}]" in log
     assert "README" in client.get("/").text and 'id="helpdlg"' in client.get("/").text
     out = subprocess.run([sys.executable, "-m", "pdfindex", "--version"], capture_output=True, text=True).stdout
+    out = " ".join(out.split())
     assert __version__ in out and DESIGNER in out
 
 
