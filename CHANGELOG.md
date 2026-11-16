@@ -2,6 +2,16 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.11.0] - 2026-11-16
+
+### Added
+- **Identical files are indexed once.** A file with the same content hash as an already indexed document is recorded as another location (new table `doc_paths`) instead of being indexed and OCR'd again. Search results show one entry per file; when it exists in several places a location dropdown appears next to the name, and the chosen location is used by the viewer and **Open original file** (`/api/pdf/<id>?location=...`, `/api/file/<id>?location=...`; `GET /api/docs/<id>` lists `paths`). The Path filter also matches extra locations. The scan summary counts them as `duplicates`.
+
+### Changed
+- Documents already indexed separately with identical content are merged on the next scan (the one with notes is kept, notes from the other copy are moved over; on a clash the newer note wins).
+- If a document's main path is deleted or moved but an identical copy remains, the copy becomes the main path instead of the document turning *missing*.
+- Deduplication works within one folder's index; identical files in different configured folders stay separate.
+
 ## [1.10.1] - 2026-11-16
 
 ### Changed
