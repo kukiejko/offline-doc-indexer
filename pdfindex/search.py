@@ -18,8 +18,10 @@ def strip_sentinels(text):
     return text.replace(_OPEN, " ").replace(_CLOSE, " ")
 
 
-def build_match(query):
-    """Turn user input into a safe FTS5 query: quoted phrases kept, words ANDed."""
+def build_match(query, prefix=False):
+    """Turn user input into a safe FTS5 query: quoted phrases kept, words ANDed.
+
+    With prefix=True each unquoted word of 2+ characters matches word beginnings; quoted phrases stay exact."""
     parts = []
     for m in re.finditer(r'"([^"]*)"|(\S+)', query):
         if m.group(1) is not None:
@@ -27,12 +29,12 @@ def build_match(query):
             if words:
                 parts.append('"' + " ".join(words) + '"')
         else:
-            parts.extend(f'"{w}"' for w in re.findall(r"\w+", m.group(2)))
+            parts.extend(f'"{w}"*' if prefix and len(w) >= 2 else f'"{w}"' for w in re.findall(r"\w+", m.group(2)))
     return " AND ".join(parts)
 
 
-def search(conn, query, sources=None, path_prefix=None, limit=200, doc_ids=None, exclude_ids=None, types=None):
-    match = build_match(query)
+def search(conn, query, sources=None, path_prefix=None, limit=200, doc_ids=None, exclude_ids=None, types=None, prefix=False):
+    match = build_match(query, prefix)
     if not match:
         return []
     sql = (

@@ -305,7 +305,7 @@ def create_app(cfg: Config, ocr=None, watch=True):
         return sorted(out, key=lambda d: d["path"])
 
     @app.get("/api/search")
-    def api_search(q: str = "", source: str = "", folder: str = "", docs: str = "", mode: str = "only", types: str = ""):
+    def api_search(q: str = "", source: str = "", folder: str = "", docs: str = "", mode: str = "only", types: str = "", prefix: bool = False):
         tlist = [t for t in types.split(",") if t]
         if any(t not in ALL_TYPES for t in tlist):
             raise HTTPException(422, "unknown file type")
@@ -323,7 +323,7 @@ def create_app(cfg: Config, ocr=None, watch=True):
             for r in search(conn, q, [s for s in source.split(",") if s] or None, folder or None,
                             doc_ids=ids if mode == "only" else None,
                             exclude_ids=ids if mode == "exclude" else None,
-                            types=tlist or None):
+                            types=tlist or None, prefix=prefix):
                 r["doc_id"] = gid(slot, r["doc_id"])
                 r.pop("content", None)
                 res.append(r)

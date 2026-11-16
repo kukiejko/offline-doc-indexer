@@ -96,3 +96,16 @@ def test_source_filter_and_grouping(conn, pdf_dir):
 
 def test_search_input_is_sanitised(conn):
     assert search(conn, 'AND OR " ( * NEAR') is not None
+    assert search(conn, 'AND OR " ( * NEAR', prefix=True) is not None
+
+
+def test_prefix_match_is_opt_in(conn, pdf_dir):
+    make_text_pdf(pdf_dir / "k.pdf", ["the kawakita method and a b2 code"])
+    index_pdf(conn, pdf_dir / "k.pdf")
+    assert search(conn, "kawa") == []
+    r = search(conn, "kawa", prefix=True)
+    assert len(r) == 1 and "<mark>kawakita</mark>" in r[0]["snippet"]
+    assert len(search(conn, "kawa method", prefix=True)) == 1
+    assert search(conn, '"kawa method"', prefix=True) == []  # quoted phrases stay exact
+    assert len(search(conn, '"kawakita method"', prefix=True)) == 1
+    assert search(conn, "k", prefix=True) == []  # one-letter terms are never expanded

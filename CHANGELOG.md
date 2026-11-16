@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.10.0] - 2026-11-16
+
+### Added
+- **Match word beginnings** checkbox in the Filters tab (off by default, remembered, shown as "word beginnings" in the "Filters on" hint): each unquoted word of 2+ letters matches words that start with it, so `kawa` finds `kawakita`. One-letter words stay exact and "quoted phrases" always stay exact. Highlighting shows the whole matched word. API: `GET /api/search?...&prefix=true`.
+
 ## [1.9.1] - 2026-11-16
 
 ### Added

@@ -11,6 +11,7 @@ async function doSearch() {
   $('#count').textContent = 'Searching…';
   const src = [...document.querySelectorAll('.src:checked')].map(c => c.value).join(',');
   const params = {q, source: src, folder: $('#folder').value};
+  if ($('#prefix').checked) params.prefix = 'true';
   const tsel = [...document.querySelectorAll('.ftype:checked')].map(c => c.value);
   if (!tsel.length) { $('#count').textContent = ''; $('#results').innerHTML = '<p class="muted">Select at least one file type.</p>'; return; }
   if (tsel.length < document.querySelectorAll('.ftype').length) params.types = tsel.join(',');
@@ -102,7 +103,7 @@ const KEY = 'pdfindex.lastSearch';
 const saveState = () => {
   try {
     localStorage.setItem(KEY, JSON.stringify({
-      q: $('#q').value, folder: $('#folder').value,
+      q: $('#q').value, folder: $('#folder').value, prefix: $('#prefix').checked,
       src: [...document.querySelectorAll('.src')].filter(c => c.checked).map(c => c.value),
       types: [...document.querySelectorAll('.ftype')].filter(c => c.checked).map(c => c.value),
       scroll: top_.scrollTop, sel: selHref, docs: [...fsel], mode: fmode, foldQ, opened: [...opened], showAll: [...showAll], sort: sortKey, hitOrder}));
@@ -110,10 +111,10 @@ const saveState = () => {
 };
 let t;
 $('#q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(doSearch, 250); });
-document.querySelectorAll('.src,.ftype,#folder').forEach(e => e.addEventListener('change', doSearch));
+document.querySelectorAll('.src,.ftype,#folder,#prefix').forEach(e => e.addEventListener('change', doSearch));
 $('#q').addEventListener('input', saveState);
 $('#folder').addEventListener('input', saveState);
-document.querySelectorAll('.src,.ftype').forEach(e => e.addEventListener('change', saveState));
+document.querySelectorAll('.src,.ftype,#prefix').forEach(e => e.addEventListener('change', saveState));
 $('#results').addEventListener('click', saveState);
 window.addEventListener('pagehide', saveState);
 
@@ -134,6 +135,7 @@ window.addEventListener('pagehide', saveState);
   if (SORTS[s.sort]) { sortKey = s.sort; $('#sort').value = sortKey; }
   $('#q').value = s.q;
   $('#folder').value = s.folder || '';
+  $('#prefix').checked = !!s.prefix;
   document.querySelectorAll('.src').forEach(c => { c.checked = (s.src || []).includes(c.value); });
   if (Array.isArray(s.types)) document.querySelectorAll('.ftype').forEach(c => { c.checked = s.types.includes(c.value); });
   if (typeof renderHint === 'function') renderHint();
@@ -155,6 +157,7 @@ function renderHint() {
   if (types.some(c => !c.checked)) parts.push('types: ' + (types.filter(c => c.checked).map(c => c.value).join(', ') || 'none'));
   const srcs = [...document.querySelectorAll('.src')];
   if (srcs.some(c => !c.checked)) parts.push('show: ' + (srcs.filter(c => c.checked).map(c => c.value).join(', ') || 'none'));
+  if ($('#prefix').checked) parts.push('word beginnings');
   const fo = $('#folder').value.trim();
   if (fo) parts.push('folder: ' + fo);
   $('#filterhint').hidden = !parts.length;
