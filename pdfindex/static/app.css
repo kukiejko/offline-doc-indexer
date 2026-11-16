@@ -115,3 +115,5 @@ body.embed #side{width:240px}
 #filesbtn[aria-expanded=true]{background:var(--brand);box-shadow:inset 0 -3px 0 #fff}
 #filesbtn.active{background:#8a3b00;font-weight:600}
 #filesbtn.active[aria-expanded=true]{background:#6b2d00}
+
+.prefixopt{display:block;margin:6px 0 2px;font-size:13px;color:var(--muted,#555)}

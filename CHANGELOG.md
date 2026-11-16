@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.10.1] - 2026-11-16
+
+### Changed
+- The **Match word beginnings** checkbox moved from the Filters tab to the Search tab, directly under the search box and Search button. It is no longer listed in the "Filters on" hint or counted in the "Filters •" tab marker, since it is always visible where you type. Still off by default and remembered.
+
 ## [1.10.0] - 2026-11-16
 
 ### Added

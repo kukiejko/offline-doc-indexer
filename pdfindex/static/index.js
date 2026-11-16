@@ -157,7 +157,6 @@ function renderHint() {
   if (types.some(c => !c.checked)) parts.push('types: ' + (types.filter(c => c.checked).map(c => c.value).join(', ') || 'none'));
   const srcs = [...document.querySelectorAll('.src')];
   if (srcs.some(c => !c.checked)) parts.push('show: ' + (srcs.filter(c => c.checked).map(c => c.value).join(', ') || 'none'));
-  if ($('#prefix').checked) parts.push('word beginnings');
   const fo = $('#folder').value.trim();
   if (fo) parts.push('folder: ' + fo);
   $('#filterhint').hidden = !parts.length;
