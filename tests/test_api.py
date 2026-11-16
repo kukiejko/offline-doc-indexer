@@ -124,6 +124,7 @@ def test_notes_api_and_viewer(client):
     assert home.index('</header>') < home.index('id="tab-search"') < home.index('id="search"') and home.index('id="tab-issues"') < home.index('id="search"')
     assert 'id="searchbtn"' in home and home.index('id="q"') < home.index('id="searchbtn"') < home.index('id="results"') and 'searchNow' in js
     assert 'id="tab-index"' in home and 'id="rescan"' not in home and home.index('id="tab-index"') < home.index('id="scanpanel"') and 'showPanel' not in js and "`Index ${" in js
+    assert 'id="verbadge"' in home and "'v' + v.version" in js
     assert "e.key !== '/'" in js
     css = client.get('/static/app.css').text
     assert '.folderlimit input{' in css and 'font-size:18px' in css.split('.folderlimit input{')[1].split('}')[0]

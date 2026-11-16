@@ -2,6 +2,11 @@
 
 All notable changes to PDF Indexer. Format: [Keep a Changelog](https://keepachangelog.com/), versioning: [SemVer](https://semver.org/).
 
+## [1.9.1] - 2026-11-16
+
+### Added
+- The app version (e.g. "v1.9.1", read from `/api/version`, the single source of truth) is shown as a small muted badge next to the title in the header; it stays hidden if the API is unreachable.
+
 ## [1.9.0] - 2026-11-12
 
 Release summary of 1.4.0–1.8.10 (details in the entries below).

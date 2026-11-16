@@ -554,6 +554,12 @@ splitter.addEventListener('keydown', e => {
 poll();
 
 // ---- help / release info ----
+fetch('/api/version').then(r => r.json()).then(v => {
+  const b = $('#verbadge');
+  b.textContent = 'v' + v.version;
+  b.title = `${v.name} version ${v.version}`;
+  b.hidden = false;
+}).catch(() => { /* badge stays hidden */ });
 const helpdlg = $('#helpdlg');
 $('#helpbtn').onclick = async () => {
   helpdlg.showModal();
