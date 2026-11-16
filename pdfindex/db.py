@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS notes (
     text TEXT NOT NULL, updated_at REAL NOT NULL, stale_at REAL,
     PRIMARY KEY (doc_id, page)
 );
+CREATE TABLE IF NOT EXISTS doc_paths (
+    path TEXT PRIMARY KEY, doc_id INTEGER NOT NULL, size INTEGER, mtime REAL
+);
+CREATE INDEX IF NOT EXISTS doc_paths_doc ON doc_paths(doc_id);
 CREATE TABLE IF NOT EXISTS issues (
     id INTEGER PRIMARY KEY,
     path TEXT NOT NULL, page INTEGER, message TEXT NOT NULL, created_at REAL NOT NULL

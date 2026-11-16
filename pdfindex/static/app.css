@@ -117,3 +117,5 @@ body.embed #side{width:240px}
 #filesbtn.active[aria-expanded=true]{background:#6b2d00}
 
 .prefixopt{display:block;margin:6px 0 2px;font-size:13px;color:var(--muted,#555)}
+
+.doc h3 .loc{max-width:40%;font-size:13px;text-overflow:ellipsis}

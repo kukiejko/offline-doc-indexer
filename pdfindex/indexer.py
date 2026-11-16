@@ -7,6 +7,7 @@ import fitz
 
 from .db import add_issue, clear_issues, log_issue
 from .extract import ALL_TYPES, LEGACY_EXTS, doc_type, open_units, size_limit
+from .notes import save_note
 from .search import strip_sentinels
 
 
@@ -297,6 +298,82 @@ def _page_estimate(conn, path):
         return 0
 
 
+def sync_copies(conn, files):
+    """Extra locations of identical files (table doc_paths): forget ones that vanished or changed (a changed
+    copy re-enters the scan as a new file), and when a document's main path is gone make a surviving copy the
+    main path. Returns the files that still need indexing (copies are dropped)."""
+    present = {str(p): p for p in files}
+    with conn:
+        for r in conn.execute("SELECT path, size, mtime FROM doc_paths").fetchall():
+            p = present.get(r["path"])
+            if p is None or (p.stat().st_size, p.stat().st_mtime) != (r["size"], r["mtime"]):
+                conn.execute("DELETE FROM doc_paths WHERE path=?", (r["path"],))
+        for d in conn.execute("SELECT id, path FROM documents").fetchall():
+            if d["path"] in present:
+                continue
+            alt = conn.execute("SELECT path, mtime FROM doc_paths WHERE doc_id=? ORDER BY path", (d["id"],)).fetchone()
+            if alt:
+                conn.execute("UPDATE documents SET path=?, mtime=?, status=CASE WHEN status='missing' THEN 'ok' ELSE status END "
+                             "WHERE id=?", (alt["path"], alt["mtime"], d["id"]))
+                conn.execute("DELETE FROM doc_paths WHERE path=?", (alt["path"],))
+                conn.execute("UPDATE issues SET path=? WHERE path=?", (alt["path"], d["path"]))
+        copies = {r["path"] for r in conn.execute("SELECT path FROM doc_paths")}
+    return [p for p in files if str(p) not in copies]
+
+
+def attach_if_duplicate(conn, path):
+    """A new file identical to an indexed document is recorded as another location of it, not indexed again."""
+    if conn.execute("SELECT 1 FROM documents WHERE path=?", (str(path),)).fetchone():
+        return False
+    st = path.stat()
+    cands = conn.execute("SELECT id, hash FROM documents WHERE size=? AND status='ok' AND hash IS NOT NULL",
+                         (st.st_size,)).fetchall()
+    conn.rollback()
+    if not cands:
+        return False
+    digest = file_hash(path)
+    for c in cands:
+        if c["hash"] == digest:
+            with conn:
+                conn.execute("INSERT OR REPLACE INTO doc_paths (path, doc_id, size, mtime) VALUES (?,?,?,?)",
+                             (str(path), c["id"], st.st_size, st.st_mtime))
+                clear_issues(conn, path)
+            return True
+    return False
+
+
+def merge_duplicates(conn):
+    """Documents that were indexed separately but have identical content collapse into one (the one with
+    notes, else the oldest); the others' paths become extra locations and their notes move over."""
+    groups = {}
+    for r in conn.execute("SELECT id, path, size, mtime, hash FROM documents WHERE status='ok' AND hash IS NOT NULL ORDER BY id"):
+        groups.setdefault(r["hash"], []).append(r)
+    conn.rollback()
+    merged = 0
+    for rows in groups.values():
+        if len(rows) < 2:
+            continue
+        n = lambda r: conn.execute("SELECT COUNT(*) FROM notes WHERE doc_id=?", (r["id"],)).fetchone()[0]
+        keep = max(rows, key=lambda r: (n(r), -r["id"]))
+        for r in rows:
+            if r["id"] == keep["id"]:
+                continue
+            for note in conn.execute("SELECT page, text, updated_at FROM notes WHERE doc_id=?", (r["id"],)).fetchall():
+                cur = conn.execute("SELECT updated_at FROM notes WHERE doc_id=? AND page=?", (keep["id"], note["page"])).fetchone()
+                if cur is None or cur["updated_at"] < note["updated_at"]:
+                    save_note(conn, keep["id"], note["page"], note["text"])
+            with conn:
+                conn.execute("UPDATE doc_paths SET doc_id=? WHERE doc_id=?", (keep["id"], r["id"]))
+                conn.execute("INSERT OR REPLACE INTO doc_paths (path, doc_id, size, mtime) VALUES (?,?,?,?)",
+                             (r["path"], keep["id"], r["size"], r["mtime"]))
+                conn.execute("DELETE FROM notes WHERE doc_id=?", (r["id"],))
+                conn.execute("DELETE FROM pages_fts WHERE doc_id=?", (r["id"],))
+                conn.execute("DELETE FROM documents WHERE id=?", (r["id"],))
+                clear_issues(conn, r["path"])
+            merged += 1
+    return merged
+
+
 POSSIBLY_MOVED = "Possibly moved"
 
 
@@ -308,7 +385,7 @@ def detect_moves(conn, files):
     no document row that were not matched.
     """
     present = {str(p) for p in files}
-    known = {r["path"] for r in conn.execute("SELECT path FROM documents")}
+    known = {r["path"] for r in conn.execute("SELECT path FROM documents UNION SELECT path FROM doc_paths")}
     new_files = [p for p in files if str(p) not in known]
     gone = [r for r in conn.execute("SELECT id, path, size, hash, status FROM documents")
             if r["path"] not in present and r["hash"]]
@@ -369,10 +446,11 @@ def scan_folders(conn, folders, ocr=None, min_px=100, progress=None, force=False
                  file_types=None):
     """Index all supported files. `report(snapshot_dict)` gets file- and page-level progress;
     `force` re-indexes unchanged files; `cancel` (threading.Event) stops between pages/units."""
-    files = list_files(folders, file_types)
+    files = sync_copies(conn, list_files(folders, file_types))
     moved, new_paths = detect_moves(conn, files)
     est = [_page_estimate(conn, p) for p in files]
-    stats = {"indexed": 0, "skipped": 0, "error": 0, "removed": 0, "moved": moved, "modified": 0, "modified_files": [], "cancelled": False}
+    stats = {"indexed": 0, "skipped": 0, "error": 0, "removed": 0, "moved": moved, "modified": 0, "modified_files": [],
+             "cancelled": False, "duplicates": 0}
     snap = {"files_done": 0, "files_total": len(files), "pages_done": 0, "pages_total": sum(est),
             "current": "", "page": 0, "pages": 0, "phase": "text", "ocr_items": 0, "issues": 0, "errors": 0}
 
@@ -400,6 +478,11 @@ def scan_folders(conn, folders, ocr=None, min_px=100, progress=None, force=False
             progress(i, len(files), str(p))
         emit()
         try:
+            if attach_if_duplicate(conn, p):
+                stats["duplicates"] += 1
+                snap.update(files_done=i + 1, pages_done=base + est[i])
+                emit()
+                continue
             res = index_pdf(conn, p, ocr, min_px, force, on_event, cancel, verify)
             stats[res] += 1
             if getattr(res, "modified", False):
@@ -428,6 +511,7 @@ def scan_folders(conn, folders, ocr=None, min_px=100, progress=None, force=False
                 conn.execute("UPDATE documents SET status='missing' WHERE id=?", (r["id"],))
                 clear_issues(conn, r["path"])
                 stats["removed"] += 1
+    stats["duplicates"] += merge_duplicates(conn)
     flag_possibly_moved(conn, new_paths)
     unsupported = list_unsupported(folders)
     sync_unsupported(conn, unsupported)

@@ -196,7 +196,9 @@ $('#pglabel').textContent = info.unit_name || 'Page';
 $('#prev').setAttribute('aria-label', `Previous ${unit}`);
 $('#next').setAttribute('aria-label', `Next ${unit}`);
 $('#notelabel').textContent = `Notes for this ${unit}`;
-$('#orig').href = `/api/file/${docId}`;
+const locQ = params.get('loc') ? `?location=${encodeURIComponent(params.get('loc'))}` : '';
+if (params.get('loc') && info.paths.includes(params.get('loc'))) $('#title').title = params.get('loc');
+$('#orig').href = `/api/file/${docId}${locQ}`;
 $('#orig').hidden = false;
 $('#typebadge').textContent = info.type_label || '';
 
@@ -226,7 +228,7 @@ async function buildTextUnits() {
 if (isPdf) {
   pdfjs = await import('/static/vendor/pdf.min.mjs');
   pdfjs.GlobalWorkerOptions.workerSrc = '/static/vendor/pdf.worker.min.mjs';
-  pdf = await pdfjs.getDocument({url: `/api/pdf/${docId}`, isEvalSupported: false}).promise;
+  pdf = await pdfjs.getDocument({url: `/api/pdf/${docId}${locQ}`, isEvalSupported: false}).promise;
   total = pdf.numPages;
   const sizes = await Promise.all(Array.from({length: total}, async (_, i) => {
     const vp = (await pdf.getPage(i + 1)).getViewport({scale: SCALE});

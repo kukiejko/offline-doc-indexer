@@ -53,11 +53,15 @@ function render() {
   $('#results').innerHTML = d.count ? groups.map(g => {
     const n = g.hits.length, id = g.doc_id, fn = esc(name(g.path));
     const open = opened.has(id), all = showAll.has(id) || n <= PREVIEW_HITS;
-    return `<div class="doc" data-doc="${id}"><h3 title="${esc(g.path)}">` +
+    const loc = (g.paths || []).includes(locs.get(id)) ? locs.get(id) : '', ls = loc ? `&loc=${encodeURIComponent(loc)}` : '';
+    const picker = (g.paths || []).length > 1
+      ? `<select class="loc" data-doc="${id}" aria-label="Location of ${fn}" title="Identical copy of this file in ${g.paths.length} locations">` +
+        g.paths.map(x => `<option value="${esc(x)}"${x === (loc || g.path) ? ' selected' : ''}>${esc(x)}</option>`).join('') + '</select>' : '';
+    return `<div class="doc" data-doc="${id}"><h3 title="${esc(loc || g.path)}">` +
       `<button type="button" class="fold" data-doc="${id}" aria-expanded="${open}" aria-controls="body-${id}"><span class="chev" aria-hidden="true">${open ? '▾' : '▸'}</span> ${fn} <span class="ftbadge t-${esc(g.type)}">${esc(TYPE_LABEL[g.type] || g.type)}</span> · ${n} hit${n === 1 ? '' : 's'}</button>` +
-      `<button type="button" class="exclude" data-doc="${id}" aria-label="Exclude ${fn} from results">Exclude file</button></h3>` +
+      picker + `<button type="button" class="exclude" data-doc="${id}" aria-label="Exclude ${fn} from results">Exclude file</button></h3>` +
       `<div class="body" id="body-${id}"${open ? '' : ' hidden'}>` +
-      hitsOf(g).map((h, i) => `<a class="hit" href="/view/${h.doc_id}?page=${h.page}&q=${encodeURIComponent(q)}&src=${encodeURIComponent(h.source)}"${all || i < PREVIEW_HITS ? '' : ' hidden'}>` +
+      hitsOf(g).map((h, i) => `<a class="hit" href="/view/${h.doc_id}?page=${h.page}&q=${encodeURIComponent(q)}&src=${encodeURIComponent(h.source)}${ls}"${all || i < PREVIEW_HITS ? '' : ' hidden'}>` +
         `<span class="badge ${esc(h.badge)}">${esc(h.badge)}</span><b>${UNIT_LABEL[g.type] || 'p.'}${h.page}</b> ${h.snippet}</a>`).join('') +
       (all ? '' : `<button type="button" class="more" data-doc="${id}">Show all ${n} hits</button>`) + '</div></div>';
   }).join('')
@@ -65,7 +69,7 @@ function render() {
   markSelected();
 }
 const PREVIEW_HITS = 5;
-let opened = new Set(), showAll = new Set(), foldQ = null, lastData = null, lastQ = '', sortKey = 'most', hitOrder = 'page';
+let locs = new Map(), opened = new Set(), showAll = new Set(), foldQ = null, lastData = null, lastQ = '', sortKey = 'most', hitOrder = 'page';
 function setFold(id, fold) {
   const card = document.querySelector(`#results .doc[data-doc="${id}"]`);
   if (!card) return;
@@ -87,6 +91,10 @@ $('#hitorder').onchange = e => { hitOrder = e.target.value === 'relevance' ? 're
 $('#sort').onchange = e => { sortKey = SORTS[e.target.value] ? e.target.value : 'most'; render(); saveState(); };
 $('#foldall').onclick = () => { allIds().forEach(id => setFold(id, true)); saveState(); };
 $('#unfoldall').onclick = () => { allIds().forEach(id => setFold(id, false)); saveState(); };
+$('#results').addEventListener('change', e => {
+  const l = e.target.closest('select.loc');
+  if (l) { locs.set(+l.dataset.doc, l.value); render(); }
+});
 $('#results').addEventListener('click', e => {
   const f = e.target.closest('button.fold'), m = e.target.closest('button.more');
   if (f) { setFold(+f.dataset.doc, f.getAttribute('aria-expanded') === 'true'); saveState(); }

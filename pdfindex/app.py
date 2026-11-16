@@ -416,20 +416,28 @@ def create_app(cfg: Config, ocr=None, watch=True):
                 "type": r["doc_type"], "type_label": TYPE_LABELS.get(r["doc_type"], r["doc_type"]),
                 "unit_name": UNIT_NAMES.get(r["doc_type"], "Page"),
                 "note_pages": notes_mod.pages_with_notes(conn, local),
+                "paths": [r["path"]] + [a["path"] for a in conn.execute(
+                    "SELECT path FROM doc_paths WHERE doc_id=? ORDER BY path", (local,))],
             }
         finally:
             conn.close()
 
-    def doc_row(doc_id):
+    def doc_row(doc_id, location=""):
+        """The document row; `location` (one of its identical copies) replaces the path to serve."""
         conn, local = open_doc(doc_id)
         try:
-            return doc_or_404(conn, local)
+            r = dict(doc_or_404(conn, local))
+            if location and location != r["path"]:
+                if not conn.execute("SELECT 1 FROM doc_paths WHERE doc_id=? AND path=?", (local, location)).fetchone():
+                    raise HTTPException(404, "File not available")
+                r["path"] = location
+            return r
         finally:
             conn.close()
 
     @app.get("/api/pdf/{doc_id}")
-    def pdf(doc_id: int):
-        r = doc_row(doc_id)
+    def pdf(doc_id: int, location: str = ""):
+        r = doc_row(doc_id, location)
         if not indexer.path_is_servable(r["path"], cfg.folders):
             raise HTTPException(404, "File not available")
         return FileResponse(r["path"], media_type="application/pdf")
@@ -447,8 +455,8 @@ def create_app(cfg: Config, ocr=None, watch=True):
             conn.close()
 
     @app.get("/api/file/{doc_id}")
-    def original_file(doc_id: int):
-        r = doc_row(doc_id)
+    def original_file(doc_id: int, location: str = ""):
+        r = doc_row(doc_id, location)
         if not indexer.path_is_servable(r["path"], cfg.folders):
             raise HTTPException(404, "File not available")
         media = mimetypes.guess_type(r["path"])[0] or "application/octet-stream"

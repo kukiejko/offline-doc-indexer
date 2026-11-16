@@ -59,13 +59,19 @@ def search(conn, query, sources=None, path_prefix=None, limit=200, doc_ids=None,
         sql += f" AND f.source IN ({','.join('?' * len(srcs))})"
         args += srcs
     if path_prefix:
-        sql += " AND d.path LIKE ?"
-        args.append(path_prefix.replace("%", "") + "%")
+        like = path_prefix.replace("%", "") + "%"
+        sql += " AND (d.path LIKE ? OR d.id IN (SELECT doc_id FROM doc_paths WHERE path LIKE ?))"
+        args += [like, like]
     sql += " ORDER BY score LIMIT ?"
     args.append(limit)
+    rows = [dict(r) for r in conn.execute(sql, args)]
+    alts = {}
+    for r in conn.execute("SELECT doc_id, path FROM doc_paths WHERE doc_id IN (SELECT value FROM json_each(?)) ORDER BY path",
+                          (json.dumps(sorted({d["doc_id"] for d in rows})),)):
+        alts.setdefault(r["doc_id"], []).append(r["path"])
     out = []
-    for r in conn.execute(sql, args):
-        d = dict(r)
+    for d in rows:
+        d["paths"] = [d["path"]] + alts.get(d["doc_id"], [])
         d["snippet"] = safe_snippet(d["snippet"])
         d["badge"] = BADGES.get(d["source"], d["source"])
         out.append(d)
@@ -75,6 +81,6 @@ def search(conn, query, sources=None, path_prefix=None, limit=200, doc_ids=None,
 def group_by_document(results):
     groups = {}
     for r in results:
-        g = groups.setdefault(r["doc_id"], {"doc_id": r["doc_id"], "path": r["path"], "type": r["doc_type"], "hits": []})
+        g = groups.setdefault(r["doc_id"], {"doc_id": r["doc_id"], "path": r["path"], "type": r["doc_type"], "paths": r["paths"], "hits": []})
         g["hits"].append(r)
     return list(groups.values())
